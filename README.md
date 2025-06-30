@@ -1,93 +1,161 @@
-# Rag System
+# Pydantic AI Documentation Crawler & RAG Agent
 
+An intelligent documentation crawler and retrieval-augmented generation (RAG) system, powered by Crawl4AI and Pydantic AI. This project enables you to crawl, chunk, and vectorize documentation from any website, `.txt`/Markdown pages (llms.txt), or sitemap, and interact with the knowledge base using a Streamlit interface.
 
+---
 
-## Getting started
+## Features
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- **Flexible documentation crawling:** Handles regular websites, `.txt`/Markdown pages (llms.txt), and sitemaps.
+- **Parallel and recursive crawling:** Efficiently gathers large doc sites with memory-adaptive batching.
+- **Smart chunking:** Hierarchical Markdown chunking by headers, ensuring chunks are optimal for vector search.
+- **Vector database integration:** Stores chunks and metadata in ChromaDB for fast semantic retrieval.
+- **Streamlit RAG interface:** Query your documentation with LLM-powered semantic search.
+- **Extensible examples:** Modular scripts for various crawling and RAG workflows.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+---
 
-## Add your files
+## Prerequisites
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+- Python 3.11+
+- OpenAI API key (for embeddings and LLM-powered search)
+- Crawl4AI/Playwright and other dependencies in `requirements.txt`
+- (Optional) Streamlit for the web interface
 
-```
-cd existing_repo
-git remote add origin https://gitlab.kit.edu/uiojk/rag_system.git
-git branch -M main
-git push -uf origin main
-```
-
-## Integrate with your tools
-
-- [ ] [Set up project integrations](https://gitlab.kit.edu/uiojk/rag_system/-/settings/integrations)
-
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+---
 
 ## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/coleam00/ottomator-agents.git
+   cd ottomator-agents/crawl4AI-agent-v2
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   playwright install
+   ```
+
+3. **Set up environment variables:**
+   - Copy `.env.example` to `.env`
+   - Edit `.env` with your API keys and preferences:
+     ```env
+     OPENAI_API_KEY=your_openai_api_key
+     MODEL_CHOICE=gpt-4.1-mini  # or your preferred OpenAI model
+     ```
+
+---
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### 1. Crawling and Inserting Documentation
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+The main entry point for crawling and vectorizing documentation is [`insert_docs.py`](insert_docs.py):
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+#### Supported URL Types
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+- **Regular documentation sites:** Recursively crawls all internal links, deduplicates by URL (ignoring fragments).
+- **Markdown or .txt pages (such as llms.txt):** Fetches and chunks Markdown content.
+- **Sitemaps (`sitemap.xml`):** Batch-crawls all URLs listed in the sitemap.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+#### Example Usage
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```bash
+python insert_docs.py <URL> [--collection mydocs] [--db-dir ./chroma_db] [--embedding-model all-MiniLM-L6-v2] [--chunk-size 1000] [--max-depth 3] [--max-concurrent 10] [--batch-size 100]
+```
 
-## License
-For open source projects, say how it is licensed.
+**Arguments:**
+- `URL`: The root URL, .txt file, or sitemap to crawl.
+- `--collection`: ChromaDB collection name (default: `docs`)
+- `--db-dir`: Directory for ChromaDB data (default: `./chroma_db`)
+- `--embedding-model`: Embedding model for vector storage (default: `all-MiniLM-L6-v2`)
+- `--chunk-size`: Maximum characters per chunk (default: `1000`)
+- `--max-depth`: Recursion depth for regular URLs (default: `3`)
+- `--max-concurrent`: Max parallel browser sessions (default: `10`)
+- `--batch-size`: Batch size for ChromaDB insertion (default: `100`)
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+**Examples for each type (regular URL, .txt, sitemap):**
+```bash
+python insert_docs.py https://ai.pydantic.dev/
+python insert_docs.py https://ai.pydantic.dev/llms-full.txt
+python insert_docs.py https://ai.pydantic.dev/sitemap.xml
+```
+
+#### Chunking Strategy
+
+- Splits content first by `#`, then by `##`, then by `###` headers.
+- If a chunk is still too large, splits by character count.
+- All chunks are less than the specified `--chunk-size` (default: 1000 characters).
+
+#### Metadata
+
+Each chunk is stored with:
+- Source URL
+- Chunk index
+- Extracted headers
+- Character and word counts
+
+---
+
+### 2. Example Scripts
+
+The `crawl4AI-examples/` folder contains modular scripts illustrating different crawling and chunking strategies:
+
+- **`3-crawl_sitemap_in_parallel.py`:** Batch-crawls a list of URLs from a sitemap in parallel with memory tracking.
+- **`4-crawl_llms_txt.py`:** Crawls a Markdown or `.txt` file, splits by headers, and prints chunks.
+- **`5-crawl_site_recursively.py`:** Recursively crawls all internal links from a root URL, deduplicating by URL (ignoring fragments).
+
+You can use these scripts directly for experimentation or as templates for custom crawlers.
+
+---
+
+### 3. Running the Streamlit RAG Interface
+
+After crawling and inserting docs, launch the Streamlit app for semantic search and question answering:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+- The interface will be available at [http://localhost:8501](http://localhost:8501)
+- Query your documentation using natural language and get context-rich answers.
+
+---
+
+## Project Structure
+
+```
+crawl4AI-agent-v2/
+├── crawl4AI-examples/
+│   ├── 3-crawl_docs_FAST.py
+│   ├── 4-crawl_and_chunk_markdown.py
+│   └── 5-crawl_recursive_internal_links.py
+├── insert_docs.py
+├── rag_agent.py
+├── streamlit_app.py
+├── utils.py
+├── requirements.txt
+├── .env.example
+└── README.md
+```
+
+---
+
+## Advanced Usage & Customization
+
+- **Chunking:** Tune `--chunk-size` for your retrieval use case.
+- **Embeddings:** Swap out the embedding model with `--embedding-model`.
+- **Crawling:** Adjust `--max-depth` and `--max-concurrent` for large sites.
+- **Vector DB:** Use your own ChromaDB directory or collection for multiple projects.
+
+---
+
+## Troubleshooting
+
+- Ensure all dependencies are installed and environment variables are set.
+- For large sites, increase memory or decrease `--max-concurrent`.
+- If you encounter crawling issues, try running the example scripts for isolated debugging.
