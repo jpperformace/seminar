@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import streamlit as st
 import asyncio
-import os
+
 
 # Import all the message part classes
 from pydantic_ai.messages import (
@@ -25,7 +25,7 @@ load_dotenv()
 async def get_agent_deps():
     return RAGDeps(
         chroma_client=get_chroma_client("./chroma_db"),
-        collection_name="methoden",
+        collection_name="docs",
         embedding_model="all-MiniLM-L6-v2"
     )
 

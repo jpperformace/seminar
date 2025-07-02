@@ -115,13 +115,16 @@ def query_collection(
     Returns:
         Query results containing documents, metadatas, distances, and ids
     """
-    # Query the collection
-    return collection.query(
+    print(collection)
+    print(query_text)
+    query = collection.query(
         query_texts=[query_text],
         n_results=n_results,
         where=where,
         include=["documents", "metadatas", "distances"]
     )
+    # Query the collection
+    return query
 
 
 def format_results_as_context(query_results: Dict[str, Any]) -> str:

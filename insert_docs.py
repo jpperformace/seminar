@@ -195,16 +195,14 @@ def main():
 
     for doc in md_files:
         md = doc["markdown"]
-        print(md)
         chunks = smart_chunk_markdown(md, max_len=args.chunk_size)
 
         for chunk_text, headers in chunks:
             meta = extract_section_info(chunk_text, headers)
 
             print(chunk_idx)
-
             print(chunk_text)
-            print("")
+
 
             meta["chunk_index"] = chunk_idx
             meta["source"] = doc["filename"]
@@ -212,10 +210,11 @@ def main():
             ids.append(f"chunk-{chunk_idx}")
             documents.append(chunk_text)
             print(meta)
+            print("")
             metadatas.append(meta)
             chunk_idx += 1
 
-    print(metadatas)
+
     print(f"Inserting {len(documents)} chunks into ChromaDB collection '{args.collection}'...")
 
     client = get_chroma_client(args.db_dir)

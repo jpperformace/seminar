@@ -67,6 +67,8 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
         context.deps.collection_name,
         embedding_model_name=context.deps.embedding_model
     )
+
+    print(collection)
     
     # Query the collection
     query_results = query_collection(
@@ -74,9 +76,6 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
         search_query,
         n_results=n_results
     )
-
-    print("Query")
-    print(query_results)
 
     formatted_context = format_results_as_context(query_results)
     print("\n=== Retrieved Context ===\n")
