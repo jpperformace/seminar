@@ -12,6 +12,7 @@ import argparse
 import os
 import sys
 import re
+import bisect
 import asyncio
 from typing import List, Dict, Any
 from urllib.parse import urlparse, urldefrag
@@ -22,40 +23,59 @@ from utils import get_chroma_client, get_or_create_collection, add_documents_to_
 from typing import List, Tuple, Dict
 
 def smart_chunk_markdown(markdown: str, max_len: int = 1000) -> List[Tuple[str, Dict[str, str]]]:
-    """Hierarchisch splitten und Header-Kontext für jeden Chunk zurückgeben."""
+    if markdown == '' or not markdown:
+        return []
 
-    def split_by_header(md: str, pattern: str):
-        sections = re.split(f'({pattern})', md, flags=re.MULTILINE)
-        grouped = []
-        for i in range(1, len(sections), 2):
-            header = sections[i].strip()
-            body = sections[i+1].strip() if i+1 < len(sections) else ""
-            full = f"{header}\n{body}".strip()
-            grouped.append((header, full))
-        return grouped
+    """Hierarchisch splitten und Header-Kontext für jeden Chunk zurückgeben."""
+    def split_by_header(md, header_pattern, indices_list):
+        indices = [m.start() for m in re.finditer(header_pattern, md, re.MULTILINE)]
+
+        if not indices:
+            return [md], indices_list
+        for idx in indices:
+            bisect.insort(indices_list, idx)
+        result = [md[indices_list[i]:indices_list[i+1]].strip() for i in range(len(indices_list)-1) if md[indices_list[i]:indices_list[i+1]].strip()]
+        return result, indices_list
 
     chunks_with_meta = []
 
+    h1_chunks, header_indices = split_by_header(markdown, r'^# .+', [len(markdown)])
 
-    for h1_header, h1_block in split_by_header(markdown, r'^# .+'):
-        h1_title = h1_header.lstrip("#").strip()
-        for h2_header, h2_block in split_by_header(h1_block, r'^## .+'):
-            h2_title = h2_header.lstrip("#").strip()
-            for h3_header, h3_block in split_by_header(h2_block, r'^#### .+'):
-                h3_title = h3_header.lstrip("#").strip()
-                # Split if too long
-                if len(h3_block) > max_len:
-                    for i in range(0, len(h3_block), max_len):
+    for h1_block in h1_chunks:
+        lines = h1_block.split('\n')
+        h1_headers = [line.strip() for line in lines if re.match(r'^# .+', line)]
+        h1_title = h1_headers[0].lstrip("#").strip() if h1_headers else None
+
+        h2_chunks, header_indices = split_by_header(h1_block, r'^## .+', header_indices)
+        for h2_block in h2_chunks:
+            lines = h2_block.split('\n')
+            h2_headers = [line.strip() for line in lines if re.match(r'^## .+', line)]
+            h2_title = h2_headers[0].lstrip("##").strip() if h2_headers else None
+
+            h3_chunks, header_indices = split_by_header(h2_block, r'^### .+', header_indices)
+            for h3_block in h3_chunks:
+                lines = h3_block.split('\n')
+                h3_headers = [line.strip() for line in lines if re.match(r'^### .+', line)]
+                h3_title = h3_headers[0].lstrip("###").strip() if h3_headers else None
+
+                h4_chunks, header_indices = split_by_header(h3_block, r'^#### .+', header_indices)
+                for h4_block in h4_chunks:
+                    lines = h4_block.split('\n')
+                    h4_headers = [line.strip() for line in lines if re.match(r'^#### .+', line)]
+                    h4_title = h4_headers[0].lstrip("####").strip() if h4_headers else None
+
+                    if len(h4_block) > max_len:
+                        for j in range(0, len(h4_block), max_len):
+                            chunks_with_meta.append((
+                                h4_block[j:j+max_len].strip(),
+                                {"h1": h1_title, "h2": h2_title, "h3": h3_title, "h4": h4_title}
+                            ))
+                    else:
                         chunks_with_meta.append((
-                            h3_block[i:i+max_len].strip(),
-                            {"h1": h1_title, "h2": h2_title, "h3": h3_title}
+                            h4_block.strip(),
+                            {"h1": h1_title, "h2": h2_title, "h3": h3_title, "h4": h4_title}
                         ))
-                else:
-                    chunks_with_meta.append((
-                        h3_block.strip(),
-                        {"h1": h1_title, "h2": h2_title, "h3": h3_title}
-                    ))
-
+    print(chunks_with_meta)
     return chunks_with_meta
 
 def is_sitemap(url: str) -> bool:
@@ -196,6 +216,9 @@ def main():
     for doc in md_files:
         md = doc["markdown"]
         chunks = smart_chunk_markdown(md, max_len=args.chunk_size)
+
+        print("Chunks")
+        print(chunks)
 
         for chunk_text, headers in chunks:
             meta = extract_section_info(chunk_text, headers)
