@@ -29,13 +29,22 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1000) -> List[Tuple[str, 
     """Hierarchisch splitten und Header-Kontext für jeden Chunk zurückgeben."""
     def split_by_header(md, header_pattern, indices_list):
         indices = [m.start() for m in re.finditer(header_pattern, md, re.MULTILINE)]
-
         if not indices:
             return [md], indices_list
         for idx in indices:
             bisect.insort(indices_list, idx)
         result = [md[indices_list[i]:indices_list[i+1]].strip() for i in range(len(indices_list)-1) if md[indices_list[i]:indices_list[i+1]].strip()]
         return result, indices_list
+
+    """Letztes Satzzeichen finden, um sematisch gut zu splitten."""
+    def find_nearest_sentence_end(text: str, max_l: int) -> int:
+        sentence_endings = [m.end() for m in re.finditer(r'[.!?](?:\s|$)', text)]
+        candidates = [idx for idx in sentence_endings if idx <= max_l]
+
+        if candidates:
+            return candidates[-1]
+        else:
+            return max_l
 
     chunks_with_meta = []
 
@@ -64,18 +73,22 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1000) -> List[Tuple[str, 
                     h4_headers = [line.strip() for line in lines if re.match(r'^#### .+', line)]
                     h4_title = h4_headers[0].lstrip("####").strip() if h4_headers else None
 
-                    if len(h4_block) > max_len:
-                        for j in range(0, len(h4_block), max_len):
-                            chunks_with_meta.append((
-                                h4_block[j:j+max_len].strip(),
-                                {"h1": h1_title, "h2": h2_title, "h3": h3_title, "h4": h4_title}
-                            ))
-                    else:
+                    rest_block = h4_block
+
+                    while len(rest_block) > max_len:
+                        split_ind = find_nearest_sentence_end(rest_block, max_len)
+
                         chunks_with_meta.append((
-                            h4_block.strip(),
+                            rest_block[0:split_ind].strip(),
                             {"h1": h1_title, "h2": h2_title, "h3": h3_title, "h4": h4_title}
                         ))
-    print(chunks_with_meta)
+                        rest_block = rest_block[split_ind:]
+
+                    chunks_with_meta.append((
+                        rest_block.strip(),
+                        {"h1": h1_title, "h2": h2_title, "h3": h3_title, "h4": h4_title}
+                    ))
+
     return chunks_with_meta
 
 def is_sitemap(url: str) -> bool:

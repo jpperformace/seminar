@@ -100,6 +100,33 @@ def test_chunk_split_by_max_length():
             f"Chunk {i} hat falsche Länge:\nErwartet: {expected_length}, Erhalten: {len(chunk_text)}"
         )
 
+def test_chunking_splits_at_sentence_end():
+    md = "# Einleitung\nDies ist der erste Satz. Hier kommt der zweite Satz. Ein dritter Satz ist nun dabei! Und noch ein vierter. Fast Ende? Schließlich ein letzter Satz."
+
+    max_len = 60
+
+    expected_content_1 = "# Einleitung\nDies ist der erste Satz."
+    expected_content_2 = "Hier kommt der zweite Satz. Ein dritter Satz ist nun dabei!"
+    expected_content_3 = "Und noch ein vierter. Fast Ende?"
+    expected_content_4 = "Schließlich ein letzter Satz."
+
+    expected_meta = {'h1': 'Einleitung', 'h2': None, 'h3': None, 'h4': None}
+
+    chunks = smart_chunk_markdown(md, max_len=max_len)
+
+    assert len(chunks) == 4, "Es sollten 4 Chunks entstehen (1200 Zeichen bei max_len=60)"
+    assert chunks[0][0] == expected_content_1, f"Inhalt stimmt nicht:\nErwartet:\n{expected_content_1}\nErhalten:\n{chunks[0][0]}"
+    assert chunks[1][0] == expected_content_2, f"Inhalt stimmt nicht:\nErwartet:\n{expected_content_2}\nErhalten:\n{chunks[1][0]}"
+    assert chunks[2][0] == expected_content_3, f"Inhalt stimmt nicht:\nErwartet:\n{expected_content_3}\nErhalten:\n{chunks[2][0]}"
+    assert chunks[3][0] == expected_content_4, f"Inhalt stimmt nicht:\nErwartet:\n{expected_content_4}\nErhalten:\n{chunks[3][0]}"
+
+
+
+    for chunk in enumerate(chunks):
+        assert chunk[1][1] == expected_meta, (
+            f"Metadaten im Chunk {chunk[0]} stimmen nicht:\nErwartet: {expected_meta}\nErhalten: {chunk[1]}"
+        )
+
 def test_empty_markdown_returns_empty_list():
     md = ""
 
