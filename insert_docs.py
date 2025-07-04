@@ -17,6 +17,21 @@ from typing import List, Dict, Any
 from utils import get_chroma_client, get_or_create_collection, add_documents_to_collection
 from typing import List, Tuple, Dict
 
+
+def print_chunk_info(chunk_idx, chunk_text, meta):
+    print("--------------- Chunk---------------")
+    print("Chunk index:", chunk_idx)
+    print("Content")
+    print(chunk_text)
+    print("Metadata")
+    print(meta)
+    print('')
+
+def print_block_info(block_text):
+    print("---------------block start---------------")
+    print(block_text)
+    print("---------------block end---------------")
+
 def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, Dict[str, str]]]:
     if markdown == '' or not markdown:
         return []
@@ -25,17 +40,11 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
     def split_by_header(md, header_pattern, indices_list):
         indices = [m.start() for m in re.finditer(header_pattern, md, re.MULTILINE)]
 
-        print("_______________________________")
-        print(header_pattern)
-        print(indices_list)
-        print(indices)
         if not indices:
             return [md], indices_list
         for idx in indices:
             bisect.insort(indices_list, idx)
 
-        print("neue Liste")
-        print(indices_list)
         result = [md[indices_list[i]:indices_list[i+1]].strip() for i in range(len(indices_list)-1) if md[indices_list[i]:indices_list[i+1]].strip()]
 
 
@@ -55,17 +64,10 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
 
     h1_chunks, h1_header_indices = split_by_header(markdown, r'^# .+', [len(markdown)])
 
-    next_h1_block_start = 0
-    next_h2_block_start = 0
-    next_h3_block_start = 0
-
     for h1_idx, h1_block in enumerate(h1_chunks):
         lines = h1_block.split('\n')
         h1_headers = [line.strip() for line in lines if re.match(r'^# .+', line)]
         h1_title = h1_headers[0].lstrip("#").strip() if h1_headers else None
-
-        print("H1")
-        print(h1_header_indices)
 
         h2_chunks, h2_header_indices = split_by_header(h1_block, r'^## .+', [0, h1_header_indices[h1_idx + 1] - h1_header_indices[h1_idx]])
         for h2_idx, h2_block in enumerate(h2_chunks):
@@ -90,9 +92,7 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
 
                     rest_block = h4_block
 
-                    print("---------------block start---------------")
-                    print(rest_block)
-                    print("---------------block end---------------")
+                    print_block_info(rest_block)
 
                     while len(rest_block) > max_len:
                         split_ind = find_nearest_sentence_end(rest_block, max_len)
@@ -175,10 +175,7 @@ def main():
             metadatas.append(meta)
             chunk_idx += 1
 
-            print(chunk_idx)
-            print(chunk_text)
-            print(meta)
-            print('')
+            print_chunk_info(chunk_idx, chunk_text, meta)
 
 
     print(f"Inserting {len(documents)} chunks into ChromaDB collection '{args.collection}'...")
@@ -188,6 +185,7 @@ def main():
     add_documents_to_collection(collection, ids, documents, metadatas, batch_size=args.batch_size)
 
     print(f"Successfully added {len(documents)} chunks to ChromaDB collection '{args.collection}'.")
+
 
 if __name__ == "__main__":
     main()
