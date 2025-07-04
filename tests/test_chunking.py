@@ -114,7 +114,7 @@ def test_chunking_splits_at_sentence_end():
 
     chunks = smart_chunk_markdown(md, max_len=max_len)
 
-    assert len(chunks) == 4, "Es sollten 4 Chunks entstehen (1200 Zeichen bei max_len=60)"
+    assert len(chunks) == 4, "Es sollten 4 Chunks entstehen (bei max_len=60)"
     assert chunks[0][0] == expected_content_1, f"Inhalt stimmt nicht:\nErwartet:\n{expected_content_1}\nErhalten:\n{chunks[0][0]}"
     assert chunks[1][0] == expected_content_2, f"Inhalt stimmt nicht:\nErwartet:\n{expected_content_2}\nErhalten:\n{chunks[1][0]}"
     assert chunks[2][0] == expected_content_3, f"Inhalt stimmt nicht:\nErwartet:\n{expected_content_3}\nErhalten:\n{chunks[2][0]}"
@@ -126,6 +126,78 @@ def test_chunking_splits_at_sentence_end():
         assert chunk[1][1] == expected_meta, (
             f"Metadaten im Chunk {chunk[0]} stimmen nicht:\nErwartet: {expected_meta}\nErhalten: {chunk[1]}"
         )
+
+def test_chunking_with_nested_headers():
+    markdown = (
+        "# KI\n"
+        "Einführung in die Künstliche Intelligenz.\n\n"
+        "## Geschichte\n"
+        "Die Geschichte der KI begann in den 1950ern mit den ersten Theorien über maschinelles Denken.\n\n"
+        "### Turing-Test\n"
+        "Ein Konzept von Alan Turing zur Bewertung von Maschinenintelligenz, das bis heute diskutiert wird.\n\n"
+        "#### Definition\n"
+        "Der Turing-Test prüft, ob eine Maschine menschlich wirkt, indem sie einen Menschen im Gespräch täuscht.\n\n"
+        "#### Kritik\n"
+        "Der Test misst nur Verhalten, nicht echtes Verstehen oder Bewusstsein der Maschine.\n\n"
+        "### Symbolische KI\n"
+        "Eine der ersten KI-Methoden, bei der Wissen in logischen Regeln modelliert wird.\n\n"
+        "#### Expertensysteme\n"
+        "Programme wie MYCIN nutzten Regeln zur medizinischen Diagnose und waren in den 1980ern weit verbreitet.\n\n"
+        "## Anwendungen\n"
+        "Moderne KI findet Anwendung in vielen Bereichen wie Medizin, Finanzen und Bildung.\n\n"
+        "### NLP\n"
+        "Verarbeitung natürlicher Sprache durch Maschinen ermöglicht neue Kommunikationsformen.\n\n"
+        "#### Chatbots\n"
+        "Systeme wie ChatGPT verstehen und erzeugen Sprache, um mit Menschen auf natürliche Weise zu interagieren.\n"
+    )
+
+    expexted_chunks_with_metadata = [
+        ("# KI\nEinführung in die Künstliche Intelligenz.", {"h1": "KI", "h2": None, "h3": None, "h4": None}),
+        ("## Geschichte\nDie Geschichte der KI begann in den 1950ern mit den ersten Theorien über maschinelles Denken.",
+         {"h1": "KI", "h2": "Geschichte", "h3": None, "h4": None}),
+        ("### Turing-Test\nEin Konzept von Alan Turing zur Bewertung von Maschinenintelligenz, das bis heute diskutiert wird.",
+         {"h1": "KI", "h2": "Geschichte", "h3": "Turing-Test", "h4": None}),
+        ("#### Definition\nDer Turing-Test prüft, ob eine Maschine menschlich wirkt, indem sie einen Menschen im Gespräch täuscht.",
+         {"h1": "KI", "h2": "Geschichte", "h3": "Turing-Test", "h4": "Definition"}),
+        ("#### Kritik\nDer Test misst nur Verhalten, nicht echtes Verstehen oder Bewusstsein der Maschine.",
+         {"h1": "KI", "h2": "Geschichte", "h3": "Turing-Test", "h4": "Kritik"}),
+        ("### Symbolische KI\nEine der ersten KI-Methoden, bei der Wissen in logischen Regeln modelliert wird.",
+         {"h1": "KI", "h2": "Geschichte", "h3": "Symbolische KI", "h4": None}),
+        ("#### Expertensysteme\nProgramme wie MYCIN nutzten Regeln zur medizinischen Diagnose und waren in den 1980ern weit verbreitet.",
+         {"h1": "KI", "h2": "Geschichte", "h3": "Symbolische KI", "h4": "Expertensysteme"}),
+        ("## Anwendungen\nModerne KI findet Anwendung in vielen Bereichen wie Medizin, Finanzen und Bildung.",
+         {"h1": "KI", "h2": "Anwendungen", "h3": None, "h4": None}),
+        ("### NLP\nVerarbeitung natürlicher Sprache durch Maschinen ermöglicht neue Kommunikationsformen.",
+         {"h1": "KI", "h2": "Anwendungen", "h3": "NLP", "h4": None}),
+        ("#### Chatbots\nSysteme wie ChatGPT verstehen und erzeugen Sprache, um mit Menschen auf natürliche Weise zu interagieren.",
+         {"h1": "KI", "h2": "Anwendungen", "h3": "NLP", "h4": "Chatbots"}),
+    ]
+
+    chunks_with_metadata = smart_chunk_markdown(markdown, max_len=500)
+
+    assert len(chunks_with_metadata) == 10, "Es sollten insgesamt 10 Chunks entstehen, jeweils pro Überschrift (bei max_len=500)"
+
+    for i, (chunk, meta) in enumerate(chunks_with_metadata):
+        expected_chunk, expected_meta = expexted_chunks_with_metadata[i]
+        assert chunk.strip() == expected_chunk.strip(), f"Chunk {i} stimmt nicht: \n{chunk} \n≠\n {expected_chunk}"
+        assert meta == expected_meta, f"Metadaten {i} stimmen nicht: \n{meta} \n≠\n {expected_meta}"
+
+
+def test_chunking_with_nested_headers_easy():
+    markdown = (
+        "# H1.1\n"
+        "Das ist ein Satz für H1.1.\n\n"
+        "## H2.1\n"
+        "Das ist ein Satz für H2.1.\n\n"
+        "# H1.2\n"
+        "Das ist ein Satz für H1.2.\n\n"
+        "## H2.2\n"
+        "Das ist ein Satz für H2.2.\n\n"
+    )
+
+    chunks = smart_chunk_markdown(markdown, max_len=500)
+
+    assert len(chunks) == 4, "Es sollten insgesamt 10 Chunks entstehen, jeweils pro Überschrift (bei max_len=500)"
 
 def test_empty_markdown_returns_empty_list():
     md = ""

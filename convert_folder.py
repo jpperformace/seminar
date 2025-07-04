@@ -1,3 +1,15 @@
+"""
+convert_docx.py
+---------------
+Command-line utility to batch convert all `.docx` files in a specified folder into Markdown format.
+
+It uses Mammoth to extract semantic HTML from Word documents, then converts the HTML to Markdown
+using the `markdownify` library. All resulting `.md` files are saved in the `markdown_files/` directory.
+
+Usage:
+    python convert_docx.py <input_folder> [-v]
+"""
+
 import mammoth
 from markdownify import markdownify as md
 import argparse
@@ -53,10 +65,13 @@ def main():
         print("No DOCX files found in the directory.")
         return
 
+    output_folder = "markdown_files"
+    os.makedirs(output_folder, exist_ok=True)
+
     for docx_filename in docx_files:
         docx_path = os.path.join(input_folder, docx_filename)
         md_filename = os.path.splitext(docx_filename)[0] + ".md"
-        md_path = os.path.join('markdown_files', md_filename)
+        md_path = os.path.join(output_folder, md_filename)
         docx_to_markdown(docx_path, md_path, verbose=args.verbose)
 
 if __name__ == "__main__":
