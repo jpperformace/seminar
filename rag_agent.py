@@ -13,6 +13,12 @@ from pydantic_ai import RunContext
 from pydantic_ai.agent import Agent
 from openai import AsyncOpenAI
 
+# Load environment variables from .env file
+dotenv.load_dotenv()
+
+from graphiti_core import Graphiti
+from graphiti_core.nodes import EpisodeType
+
 from utils import (
     get_chroma_client,
     get_or_create_collection,
@@ -20,8 +26,8 @@ from utils import (
     format_results_as_context
 )
 
-# Load environment variables from .env file
-dotenv.load_dotenv()
+
+print("OpenAI API Key:", os.getenv("OPENAI_API_KEY"))
 
 # Check for OpenAI API key
 if not os.getenv("OPENAI_API_KEY"):
@@ -49,8 +55,15 @@ agent = Agent(
 )
 
 
+neo4j_uri = os.environ.get('NEO4J_URI', 'bolt://localhost:7687')
+neo4j_user = os.environ.get('NEO4J_USER', 'neo4j')
+neo4j_password = os.environ.get('NEO4J_PASSWORD', 'password')
+
+if not neo4j_uri or not neo4j_user or not neo4j_password:
+    raise ValueError('NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set')
+
 @agent.tool
-async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: int = 5) -> str:
+async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: int = 5, use_graphiti: bool = False) -> str:
     """Retrieve relevant documents from ChromaDB based on a search query.
     
     Args:
@@ -61,27 +74,44 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
     Returns:
         Formatted context information from the retrieved documents.
     """
-    # Get ChromaDB client and collection
-    collection = get_or_create_collection(
-        context.deps.chroma_client,
-        context.deps.collection_name,
-        embedding_model_name=context.deps.embedding_model
-    )
 
-    print(collection)
-    
-    # Query the collection
-    query_results = query_collection(
-        collection,
-        search_query,
-        n_results=n_results
-    )
+    source = ''
 
-    formatted_context = format_results_as_context(query_results)
-    print("\n=== Retrieved Context ===\n")
+    if use_graphiti:
+        # Suche im Knowledge Graph
+
+        graphiti = Graphiti(neo4j_uri, neo4j_user, neo4j_password)
+        results = await graphiti.search(search_query)
+        results = results[:n_results]
+        formatted_context = "\n\n".join(f"UUID: {r.uuid}\nFact: {r.fact}" for r in results)
+        source = "Knowledge Graph"
+    else:
+        # Get ChromaDB client and collection
+        collection = get_or_create_collection(
+            context.deps.chroma_client,
+            context.deps.collection_name,
+            embedding_model_name=context.deps.embedding_model
+        )
+
+        print(collection)
+
+        # Query the collection
+        query_results = query_collection(
+            collection,
+            search_query,
+            n_results=n_results
+        )
+
+        formatted_context = format_results_as_context(query_results)
+
+    print(f"\n=== Retrieved Context from {source} ===\n")
     print(formatted_context)
     print("\n=========================\n")
+
     return formatted_context
+
+
+
 
     # Format the results as context
     # return format_results_as_context(query_results)
