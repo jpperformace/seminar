@@ -63,6 +63,13 @@ async def main():
         # performs a hybrid search combining semantic
         # similarity and BM25 text retrieval.
         #################################################
+        """
+        graphiti = Graphiti(neo4j_uri, neo4j_user, neo4j_password)
+        results = await graphiti.search(search_query)
+        results = results[:n_results]
+        formatted_context = "\n\n".join(f"UUID: {r.uuid}\nFact: {r.fact}" for r in results)
+        source = "Knowledge Graph"
+        """
 
         # Perform a hybrid search combining semantic similarity and BM25 retrieval
         print("\nSearching for: 'Welche Methoden brauchen weniger als 30 Minuten?'")

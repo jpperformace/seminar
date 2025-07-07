@@ -21,8 +21,8 @@ from utils import get_chroma_client
 
 load_dotenv()
 
-
-async def get_agent_deps():
+@st.cache_resource
+def get_agent_deps_cached():
     return RAGDeps(
         chroma_client=get_chroma_client("./chroma_db"),
         collection_name="docs",
@@ -63,6 +63,7 @@ async def run_agent_with_streaming(user_input):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
 async def main():
     st.title("Nutzerzentriert Entwickelt")
 
@@ -70,7 +71,7 @@ async def main():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "agent_deps" not in st.session_state:
-        st.session_state.agent_deps = await get_agent_deps()
+        st.session_state.agent_deps = get_agent_deps_cached()
 
         # Display all messages from the conversation so far
     # Each message is either a ModelRequest or ModelResponse.
@@ -102,7 +103,6 @@ async def main():
 
             # Final response without the cursor
             message_placeholder.markdown(full_response)
-
 
 if __name__ == "__main__":
     asyncio.run(main())

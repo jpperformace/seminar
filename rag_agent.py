@@ -63,7 +63,7 @@ if not neo4j_uri or not neo4j_user or not neo4j_password:
     raise ValueError('NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set')
 
 @agent.tool
-async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: int = 5, use_graphiti: bool = False) -> str:
+async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: int = 5) -> str:
     """Retrieve relevant documents from ChromaDB based on a search query.
     
     Args:
@@ -75,36 +75,25 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
         Formatted context information from the retrieved documents.
     """
 
-    source = ''
+    # Get ChromaDB client and collection
+    collection = get_or_create_collection(
+        context.deps.chroma_client,
+        context.deps.collection_name,
+        embedding_model_name=context.deps.embedding_model
+    )
 
-    if use_graphiti:
-        # Suche im Knowledge Graph
+    print(collection)
 
-        graphiti = Graphiti(neo4j_uri, neo4j_user, neo4j_password)
-        results = await graphiti.search(search_query)
-        results = results[:n_results]
-        formatted_context = "\n\n".join(f"UUID: {r.uuid}\nFact: {r.fact}" for r in results)
-        source = "Knowledge Graph"
-    else:
-        # Get ChromaDB client and collection
-        collection = get_or_create_collection(
-            context.deps.chroma_client,
-            context.deps.collection_name,
-            embedding_model_name=context.deps.embedding_model
-        )
+    # Query the collection
+    query_results = query_collection(
+        collection,
+        search_query,
+        n_results=n_results
+    )
 
-        print(collection)
+    formatted_context = format_results_as_context(query_results)
 
-        # Query the collection
-        query_results = query_collection(
-            collection,
-            search_query,
-            n_results=n_results
-        )
-
-        formatted_context = format_results_as_context(query_results)
-
-    print(f"\n=== Retrieved Context from {source} ===\n")
+    print(f"\n=== Retrieved Context ===\n")
     print(formatted_context)
     print("\n=========================\n")
 
