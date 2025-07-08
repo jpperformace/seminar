@@ -2,7 +2,6 @@ import streamlit as st
 
 
 
-
 # Optional: Hintergrundfarbe für mehr "Fülle"
 st.markdown(
     """
@@ -33,12 +32,12 @@ st.markdown(
 col1, col2, spacer_right = st.columns([1, 1, 2], gap="small")
 
 with col1:
-    if st.button("💬 Frage stellen", use_container_width=True):
+    if st.button("💬 Frage stellen", use_container_width=True,  disabled=not st.session_state.get("agent_ready", False)):
         st.switch_page("pages/chatbot.py")
 
 with col2:
-    if st.button("🖥️ Simulation starten", use_container_width=True):
-        st.switch_page("pages/simulation.py")
+    if st.button("🖥️ Simulation starten", use_container_width=True,  disabled=not st.session_state.get("agent_ready", False)):
+        st.switch_page("pages/organizing.py")
 
 st.markdown(
     """
@@ -58,3 +57,10 @@ st.markdown(
     Ob Grundlagenklärung, Interpretationsfragen oder Verbesserungspotenziale – der Assistent geht auf Ihre Fragen ein, identifiziert Schwachstellen und bietet konstruktive Vorschläge zur Optimierung. Während des interaktiven Dialogs werden zentrale Erkenntnisse automatisch erfasst und in einem übersichtlichen Dokument für Sie zusammengefasst – als Basis für Ihre weitere Vorbereitung oder Teamabstimmungen.
     """
 )
+
+from agent_loader import get_agent
+
+if "agent_ready" not in st.session_state:
+    agent = get_agent()  # Lädt und cached
+    st.session_state.agent_ready = True
+    st.rerun()

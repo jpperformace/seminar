@@ -4,31 +4,14 @@ import asyncio
 
 # Import all the message part classes
 from pydantic_ai.messages import (
-    ModelMessage,
     ModelRequest,
-    ModelResponse,
-    SystemPromptPart,
-    UserPromptPart,
-    TextPart,
-    ToolCallPart,
-    ToolReturnPart,
-    RetryPromptPart,
-    ModelMessagesTypeAdapter
+    ModelResponse
 )
 
-from rag_agent import agent, RAGDeps
-from utils import get_chroma_client
+from agent_loader import get_agent
+from rag_agent import agent
 
 load_dotenv()
-
-@st.cache_resource
-def get_agent_deps_cached():
-    return RAGDeps(
-        chroma_client=get_chroma_client("./chroma_db"),
-        collection_name="docs",
-        embedding_model="all-MiniLM-L6-v2"
-    )
-
 
 def display_message_part(part):
     """
@@ -36,6 +19,7 @@ def display_message_part(part):
     Customize how you display system prompts, user prompts,
     tool calls, tool returns, etc.
     """
+
     # user-prompt
     if part.part_kind == 'user-prompt':
         with st.chat_message("user"):
@@ -47,14 +31,20 @@ def display_message_part(part):
 
 
 async def run_agent_with_streaming(user_input):
+    print("chatbot: run_agent_with_streaming")
+    print(user_input)
+    print(st.session_state.messages)
+    print(st.session_state.agent_deps)
     async with agent.run_stream(
             user_input, deps=st.session_state.agent_deps, message_history=st.session_state.messages
     ) as result:
+        print(result)
         async for message in result.stream_text(delta=True):
             yield message
 
     # Add the new messages to the chat history (including tool calls and responses)
     st.session_state.messages.extend(result.new_messages())
+
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,7 +61,8 @@ async def main():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "agent_deps" not in st.session_state:
-        st.session_state.agent_deps = get_agent_deps_cached()
+        with st.spinner("Initialisiere Agent..."):
+            st.session_state.agent_deps = get_agent()
 
         # Display all messages from the conversation so far
     # Each message is either a ModelRequest or ModelResponse.
