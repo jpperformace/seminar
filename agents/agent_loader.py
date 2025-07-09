@@ -1,4 +1,4 @@
-from rag_agent import RAGDeps
+from agents.rag_agent import RAGDeps
 from utils import get_chroma_client
 import streamlit as st
 

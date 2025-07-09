@@ -1,13 +1,18 @@
-import streamlit as st
 from dotenv import load_dotenv
 from streamlit_float import *
-from pydantic_ai.messages import ModelRequest, ModelResponse
+from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
 import asyncio
 
-from agent_loader import get_agent
-from rag_agent import agent
+from agents.agent_loader import get_agent
+from agents.rag_agent import chat_agent
 
 load_dotenv()
+
+st.sidebar.page_link('pages/start.py', label='Getting Started')
+st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
+st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation')
+st.sidebar.page_link('pages/simulation-organizing-v2.py', label='Audit Simulation V2')
+
 float_init(theme=True, include_unstable_primary=False)
 
 
@@ -21,7 +26,7 @@ def display_message_part(part):
             st.markdown(part.content)
 
 async def run_agent_with_streaming(user_input):
-    async with agent.run_stream(
+    async with chat_agent.run_stream(
         user_input,
         deps=st.session_state.agent_deps,
         message_history=st.session_state.o_messages
@@ -45,8 +50,6 @@ if "agent_deps" not in st.session_state:
 
 # ─────────────────────────────────────────────────────────────
 
-float_init(theme=True, include_unstable_primary=False)
-
 with st.container():
     st.markdown("""
     <div style="
@@ -57,7 +60,8 @@ with st.container():
             position: sticky;
             top: 1cm;
             background-color: white;
-            padding: 2rem;
+            padding: 0.1rem;
+            margin-bottom: 0.1rem;
             border-bottom: 1px solid #ccc;
             z-index: 1000;
         ">
@@ -73,50 +77,49 @@ with st.container():
 
     css = float_css_helper(
         width="100%",
-        top="1cm",  # auch hier anpassen, falls du float_parent weiterhin nutzt
+        top="1cm",
         transition=0,
+        margin="0rem",
         additional_css="background-color: white !important; z-index: 1000;"
     )
     float_parent(css=css)
 
-float_init(theme=True, include_unstable_primary=False)
+st.markdown("""
+<div style="height: 20px; background-color: white;"></div>
+""", unsafe_allow_html=True)
 
 with st.container():
-    st.markdown("""
-    <div style="
-        position: relative;
-        width: 100%;
-    ">
-        <div id="sticky-header" style="
-            position: sticky;
-            top: 1cm;
-            background-color: white;
-            padding: 2rem;
-            border-bottom: 1px solid #ccc;
-            z-index: 1000;
-        ">
-            <h2 style="margin: 0;">KI-Assistent für Siegel „Nutzerzentriert Entwickelt“</h2>
-            <p style="margin: 0;">
-                Bereiten Sie sich gezielt, effizient und interaktiv auf den Audit zur
-                <strong>nutzerzentrierten Entwicklung</strong> vor – mit unserem intelligenten
-                <strong>RAG-basierten KI-Assistenzsystem</strong>.
-            </p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    col1_context, col2_context = st.columns([1, 1])
 
-    css = float_css_helper(
-        width="100%",
-        top="1cm",  # auch hier anpassen, falls du float_parent weiterhin nutzt
-        transition=0,
-        additional_css="background-color: white !important; z-index: 1000;"
-    )
-    float_parent(css=css)
+    with col1_context:
+        st.markdown("""
+        <div style="height: 10px; background-color: white;"></div>
+        """, unsafe_allow_html=True)
+
+        organizing_box1 = st.selectbox(
+            "Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?",
+            ("Es gibt ein ganzes UUX-Team oder eine UUX-Abteilung. ", "Es gibt einen UUX-Experten. ",
+             "Andere Mitarbeitende (z.B. Software-Developer, Projekteitung, Produktmanagement).",
+             "Bisher gibt es hierfür niemand Dezidiertes."),
+        )
+
+        organizing_box2 = st.selectbox(
+            "Können am Entwickungsprozess beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen??",
+            ("Ja, alle ", "Einige", "Nein"),
+        )
+
+        organizing_box3 = st.selectbox(
+            "Wie ist die interne Kommunikation und Zusammenarbeit in Bezug auf UUX im Entwicklungsprozess strukturiert?",
+            ("Es gibt regelmäßige Meetings ausschließlich zu UUX-Themen mit allen Beteiligten.",
+             "UUX ist ein fester Tagesordnungspunkt in regulären Projektmeetings.",
+             "Die Kommunikation zu UUX findet unregelmäßig und ad hoc statt.",
+             "Es gibt keine spezifische Kommunikation zu UUX."),
+        )
 
 with st.container():
     right_float_css = float_css_helper(
-        width="42rem",
-        top="13.5rem",
+        width="38%",
+        top="10rem",
         right="2rem",
         transition=0,
         additional_css="""
@@ -134,7 +137,7 @@ with st.container():
         with col1_info:
             st.markdown("""
             <div style='font-size: 0.85rem'>
-            <strong style='font-size: 1rem'>Phase: Organisieren</strong><br><br>
+            <h4 style="margin: 0;">Phase: Organisieren</h4>
             Die Phase Organisation umfasst alle organisatorischen Elemente, die sicherstellen, dass die Kunden- und
             Benutzererfahrung eine hohe Priorität im Unternehmen hat. Dazu gehören die Verankerung einer agilen
             Denkweise, die Zuweisung geeigneter Budgets und das Vorhandensein engagierter UX-Experten.
@@ -147,9 +150,9 @@ with st.container():
                 unsafe_allow_html=True
             )
             if st.button("Wechsle in nächste Phase", use_container_width=True):
-                st.switch_page("pages/understanding.py")
+                st.switch_page("pages/simulation-understanding.py")
         with col2_info:
-            st.image("pictures/zyklus_organisieren.png", use_container_width=True)
+            st.image("pictures/ucd_process_organizing.png", use_container_width=True)
 
         # Float für den gesamten Block
         float_parent(css=right_float_css)
@@ -157,56 +160,40 @@ with st.container():
 with st.container():
     right_float_css = """
         position: fixed;
-        width: 42rem;
-        top: 33rem;
+        width: 38%;
+        top: 30rem;
         right: 2rem;
         background-color: #f9f9f9;
         padding: 1rem;
         border-radius: 0.5rem;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         z-index: 999;
-        height: 40%;
+        height: 45%;
         overflow-y: auto;
     """
 
     st.markdown(f"""
     <div style="{right_float_css}">
         <div style="font-size: 0.85rem; line-height: 1.5; color: #333;">
-            <h4 style="margin-top: 0;">Einschätzung und Potenzialanalyse für das Siegel „Nutzerzentriert Entwickelt“</h4>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span style="font-size: 1.3rem; position: relative; top: -5px;">💡</span>
+              <h4 style="margin: 0;">Hinweis:</h4>
+            </div>
             <p>
-                In der Phase <strong>Organisieren</strong> geht es darum, strukturelle und kulturelle Rahmenbedingungen zu schaffen,
-                die eine nutzerzentrierte Entwicklung dauerhaft im Unternehmen verankern. Erste Schritte wie die Bereitstellung von
-                UX-Ressourcen oder die Einbindung von UX-Zielen in die Produktstrategie sind häufig bereits erfolgt. Dennoch zeigt
-                sich in vielen Fällen Optimierungspotenzial im Hinblick auf Priorisierung, Zuständigkeiten und interne Prozesse.
-                Die folgenden Methoden unterstützen dabei, UX organisatorisch breiter aufzustellen und nachhaltiger in der
-                Unternehmenskultur zu verankern:
-            </p>
-            <p>
-                Diese Methode hilft dabei, den aktuellen Stand der UX-Verankerung im Unternehmen systematisch einzuschätzen.
-                Durch die Analyse verschiedener Dimensionen wie Strategie, Ressourcen, Prozesse und Kultur lassen sich gezielte
-                Maßnahmen ableiten, um UX organisatorisch weiterzuentwickeln.
-            </p>
-            <p>
-                Ein praxisnahes Tool zur Klärung von Rollen, Verantwortlichkeiten und Entscheidungswegen im UX-Bereich.
-                Es fördert die transparente Abstimmung zwischen UX-, Produkt- und Entwicklungsteams und hilft dabei,
-                organisatorische Lücken sichtbar zu machen.
-            </p>
-            <p>
-                Durch die Visualisierung relevanter Stakeholder wird deutlich, welche Personen oder Abteilungen Einfluss
-                auf UX-Prozesse haben. So kann gezielter daran gearbeitet werden, UX strategisch und bereichsübergreifend zu verankern.
+                An dieser Stelle wird zukünftig ein zusammenfassendes Dokument zur Einschätzung und Potenzialanalyse für das Siegel <strong>„Nutzerzentriert Entwickelt“</strong> angezeigt.
+                Es fasst zentrale Erkenntnisse der Analysephase, die durch die interaktive Konversation mit dem KI-Assistenten gewonnen wurden, zusammen und bietet einen Überblick über empfohlene nächste Schritte im weiteren Entwicklungsprozess.
             </p>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
+col1_chatbot, col2_chatbot = st.columns([1, 1])
 
-col1, col2 = st.columns([1, 1])
 
-# ─────────────────────────────────────────────────────────────
-# Linke Spalte – Eingabefeld mit Floating Button
 async def main():
 
-    with col1:
+    with col1_chatbot:
+
         with st.container(border=False):
             scroll_container = st.container()
             with scroll_container:
@@ -216,11 +203,10 @@ async def main():
                             display_message_part(part)
             with st.container():
                 user_input = st.chat_input(key='content_input', placeholder="Was möchtest du wissen?")
-                button_css = float_css_helper(width="45rem", bottom="0.3rem", transition=0)
+                button_css = float_css_helper(width="37%", bottom="0.3rem", transition=0)
                 float_parent(css=button_css)
 
             if user_input:
-                st.session_state.contents.append(user_input)  # optional Aufzeichnung
                 with st.chat_message("user"):
                     st.markdown(user_input)
 
@@ -231,8 +217,6 @@ async def main():
                         full_response += message
                         message_placeholder.markdown(full_response + "▌")
                     message_placeholder.markdown(full_response)
-
-
 
 
 if __name__ == "__main__":

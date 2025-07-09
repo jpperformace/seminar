@@ -40,29 +40,37 @@ if not neo4j_uri or not neo4j_user or not neo4j_password:
     raise ValueError('NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set')
 
 
-async def main():
-    #################################################
-    # INITIALIZATION
-    #################################################
-    # Connect to Neo4j and set up Graphiti indices
-    # This is required before using other Graphiti
-    # functionality
-    #################################################
+async def add_episodes():
+    graphiti = Graphiti(neo4j_uri, neo4j_user, neo4j_password)
 
-    # Initialize Graphiti with Neo4j connection
+
+    try:
+        await graphiti.build_indices_and_constraints()
+
+        episodes = []
+
+        # Add episodes to the graph
+        for i, episode in enumerate(episodes):
+            await graphiti.add_episode(
+                name=f'Organisieren: Bewertungsmetrik {i}',
+                episode_body=episode['content']
+                if isinstance(episode['content'], str)
+                else json.dumps(episode['content']),
+                source=episode['type'],
+                source_description=episode['description'],
+                reference_time=datetime.now(timezone.utc),
+            )
+            print(f'Added episode: Organisieren {i} ({episode["type"].value})')
+
+    finally:
+        await graphiti.close()
+        print('\nConnection closed')
+
+
+async def basic_search():
     graphiti = Graphiti(neo4j_uri, neo4j_user, neo4j_password)
 
     try:
-
-
-        #################################################
-        # BASIC SEARCH
-        #################################################
-        # The simplest way to retrieve relationships (edges)
-        # from Graphiti is using the search method, which
-        # performs a hybrid search combining semantic
-        # similarity and BM25 text retrieval.
-        #################################################
         """
         graphiti = Graphiti(neo4j_uri, neo4j_user, neo4j_password)
         results = await graphiti.search(search_query)
@@ -72,8 +80,10 @@ async def main():
         """
 
         # Perform a hybrid search combining semantic similarity and BM25 retrieval
-        print("\nSearching for: 'Welche Methoden brauchen weniger als 30 Minuten?'")
-        results = await graphiti.search('Welche Methoden brauchen weniger als 30 Minuten?')
+        print(
+            "\nSearching for: 'Welche Punkte erziehle ich wenn alle meine Mitarbeiter keine Usability und User Experience haben?'")
+        results = await graphiti.search(
+            'Welche Punkte erziehle ich wenn alle meine Mitarbeiter keine Usability und User Experience haben?')
 
         # Print search results
         print('\nSearch Results:')
@@ -145,4 +155,4 @@ async def initialize_and_add_episodes(graphiti, folder_path="markdown_files"):
             )
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(add_episodes())

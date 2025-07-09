@@ -45,7 +45,7 @@ class RAGDeps:
 
 
 # Create the RAG agent
-agent = Agent(
+chat_agent = Agent(
     os.getenv("MODEL_CHOICE", "gpt-4.1-mini"),
     deps_type=RAGDeps,
     system_prompt="You are a helpful assistant that answers questions based on the provided documentation. "
@@ -62,7 +62,7 @@ neo4j_password = os.environ.get('NEO4J_PASSWORD', 'password')
 if not neo4j_uri or not neo4j_user or not neo4j_password:
     raise ValueError('NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set')
 
-@agent.tool
+@chat_agent.tool
 async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: int = 5) -> str:
     """Retrieve relevant documents from ChromaDB based on a search query.
     
@@ -133,7 +133,7 @@ async def run_rag_agent(
     )
     
     # Run the agent
-    result = await agent.run(question, deps=deps)
+    result = await chat_agent.run(question, deps=deps)
     
     return result.data
 

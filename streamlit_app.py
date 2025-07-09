@@ -1,12 +1,11 @@
 import streamlit as st
 
+
 st.set_page_config(page_title="KI-Audit-Assistent", layout="wide")
 
-start = st.Page("pages/start.py", title="Getting Started")
-chatbot = st.Page("pages/chatbot.py", title="Chatbot")
-simulation = st.Page("pages/organizing.py", title="Audit Simulation")
+st.sidebar.page_link('pages/start.py', label='Getting Started')
+st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
+st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation')
 
-pg = st.navigation([start, chatbot, simulation])
 
-pg.run()
-
+st.switch_page("pages/start.py")

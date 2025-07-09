@@ -8,10 +8,15 @@ from pydantic_ai.messages import (
     ModelResponse
 )
 
-from agent_loader import get_agent
-from rag_agent import agent
+from agents.agent_loader import get_agent
+from agents.rag_agent import chat_agent
 
 load_dotenv()
+
+st.sidebar.page_link('pages/start.py', label='Getting Started')
+st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
+st.sidebar.page_link('pages/simulation-understanding.py', label='Audit Simulation')
+st.sidebar.page_link('pages/simulation-organizing-v2.py', label='Audit Simulation V2')
 
 def display_message_part(part):
     """
@@ -35,13 +40,15 @@ async def run_agent_with_streaming(user_input):
     print(user_input)
     print(st.session_state.messages)
     print(st.session_state.agent_deps)
-    async with agent.run_stream(
+    async with chat_agent.run_stream(
             user_input, deps=st.session_state.agent_deps, message_history=st.session_state.messages
     ) as result:
         print(result)
         async for message in result.stream_text(delta=True):
             yield message
 
+
+    print(result.new_messages())
     # Add the new messages to the chat history (including tool calls and responses)
     st.session_state.messages.extend(result.new_messages())
 
@@ -68,6 +75,7 @@ async def main():
     # Each message is either a ModelRequest or ModelResponse.
     # We iterate over their parts to decide how to display them.
     for msg in st.session_state.messages:
+        print("Message: {}".format(msg))
         if isinstance(msg, ModelRequest) or isinstance(msg, ModelResponse):
             for part in msg.parts:
                 display_message_part(part)

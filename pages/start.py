@@ -1,6 +1,9 @@
 import streamlit as st
 
-
+st.sidebar.page_link('pages/start.py', label='Getting Started')
+st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
+st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation')
+st.sidebar.page_link('pages/simulation-organizing-v2.py', label='Audit Simulation V2')
 
 # Optional: Hintergrundfarbe für mehr "Fülle"
 st.markdown(
@@ -37,7 +40,7 @@ with col1:
 
 with col2:
     if st.button("🖥️ Simulation starten", use_container_width=True,  disabled=not st.session_state.get("agent_ready", False)):
-        st.switch_page("pages/organizing.py")
+        st.switch_page("pages/simulation-organizing.py")
 
 st.markdown(
     """
@@ -58,7 +61,7 @@ st.markdown(
     """
 )
 
-from agent_loader import get_agent
+from agents.agent_loader import get_agent
 
 if "agent_ready" not in st.session_state:
     agent = get_agent()  # Lädt und cached
