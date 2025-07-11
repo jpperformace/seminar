@@ -1,10 +1,13 @@
 from dotenv import load_dotenv
 from streamlit_float import *
-from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
+from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart, TextPart
 import asyncio
 
 from agents.agent_loader import get_agent
+from agents.quantitative_rating_agent import evaluate_phase, BewertungEingabe, Phasen
 from agents.rag_agent import chat_agent
+from audit_ratings.reponse_options_organizing import organizing_question_1, organizing_question_2, \
+    organizing_question_3, organizing_question_4
 
 load_dotenv()
 
@@ -98,14 +101,14 @@ with st.container():
 
         organizing_box1 = st.selectbox(
             "Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?",
-            ("Es gibt ein ganzes UUX-Team oder eine UUX-Abteilung. ", "Es gibt einen UUX-Experten. ",
-             "Andere Mitarbeitende (z.B. Software-Developer, Projekteitung, Produktmanagement).",
-             "Bisher gibt es hierfür niemand Dezidiertes."),
+            ("Es gibt ein ganzes UUX-Team oder eine UUX-Abteilung.", "Es gibt einen UUX-Experten.",
+             "Andere Mitarbeitende (z.B. Software-Developer, Projektleitung, Produktmanagement).",
+             "Bisher gibt es hierfür niemand Dezidiertes.")
         )
 
         organizing_box2 = st.selectbox(
             "Können am Entwickungsprozess beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen??",
-            ("Ja, alle ", "Einige", "Nein"),
+            ("Ja, alle", "Einige", "Nein")
         )
 
         organizing_box3 = st.selectbox(
@@ -113,8 +116,29 @@ with st.container():
             ("Es gibt regelmäßige Meetings ausschließlich zu UUX-Themen mit allen Beteiligten.",
              "UUX ist ein fester Tagesordnungspunkt in regulären Projektmeetings.",
              "Die Kommunikation zu UUX findet unregelmäßig und ad hoc statt.",
-             "Es gibt keine spezifische Kommunikation zu UUX."),
+             "Es gibt keine spezifische Kommunikation zu UUX.")
         )
+
+        organizing_box4 = st.selectbox(
+            "Wie ist die interne Kommunikation und Zusammenarbeit in Bezug auf UUX im Entwicklungsprozess strukturiert?",
+            ("Es gibt eine verbindliche und dokumentierte Planung, wie und wann Nutzer systematisch in mehreren Projektphasen einbezogen werden (z.B. Anforderungsanalyse, Tests, Evaluation).",
+             "Es ist eine Einbindung vorgesehen (z.B. Tests oder Interviews), aber nicht verbindlich dokumentiert oder nicht für alle Phasen geplant.",
+             "Eine gelegentliche Einbindung ist angedacht oder erfolgt erfahrungsgemäß, aber ohne klare Planung.",
+             "Es gibt keine vorgesehene Planung zur Einbindung von Nutzer.")
+        )
+
+        if st.button("Bewerten"):
+            print(organizing_box1)
+            a1 = next(a for a in organizing_question_1 if a.text == organizing_box1)
+            a2 = next(a for a in organizing_question_2 if a.text == organizing_box2)
+            a3 = next(a for a in organizing_question_3 if a.text == organizing_box3)
+            a4 = next(a for a in organizing_question_4 if a.text == organizing_box4)
+
+            with st.chat_message("assistant"):
+                response = asyncio.run(evaluate_phase(BewertungEingabe(antwort1=a1, antwort2=a2, antwort3=a3, antwort4=a4), phase=Phasen.ORGANIZING.value))
+                st.session_state.o_messages.extend(
+                    [ModelResponse(parts=[TextPart(content=response.output, part_kind='text')])])
+
 
 with st.container():
     right_float_css = float_css_helper(

@@ -39,8 +39,7 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
     """Split hierarchically and return header context for each chunk.."""
     def split_by_header(md, header_pattern, indices_list):
         indices = [m.start() for m in re.finditer(header_pattern, md, re.MULTILINE)]
-        print(indices)
-        print(indices_list)
+
         if not indices:
             return [md], indices_list
         for idx in indices:
@@ -93,18 +92,11 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
 
                     rest_block = h4_block
 
-                    print_block_info(rest_block)
-
                     while len(rest_block) > max_len:
-
                         new_max_len, heading_string = update_max_length_on_headings(rest_block, h1_title, h2_title, h3_title, h4_title, max_len)
                         split_ind = find_nearest_sentence_end(rest_block, new_max_len)
 
-                        print(split_ind)
-
-                        print(len(heading_string))
                         chunk = heading_string + rest_block[0:split_ind].strip()
-                        print(chunk)
 
                         chunks_with_meta.append((
                             chunk,

@@ -28,7 +28,6 @@ def test_hierarchical_splitting_creates_all_chunks():
     ]
 
     for i, (chunk_text, chunk_meta) in enumerate(chunks):
-        print(chunk_text)
         assert chunk_text == expected_contents[i], (
             f"Inhalt des Chunks {i} stimmt nicht:\n"
             f"Erwartet:\n{expected_contents[i]}\n\nErhalten:\n{chunk_text}"
