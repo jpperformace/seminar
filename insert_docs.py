@@ -39,7 +39,8 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
     """Split hierarchically and return header context for each chunk.."""
     def split_by_header(md, header_pattern, indices_list):
         indices = [m.start() for m in re.finditer(header_pattern, md, re.MULTILINE)]
-
+        print(indices)
+        print(indices_list)
         if not indices:
             return [md], indices_list
         for idx in indices:
@@ -69,13 +70,13 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
         h1_headers = [line.strip() for line in lines if re.match(r'^# .+', line)]
         h1_title = h1_headers[0].lstrip("#").strip() if h1_headers else None
 
-        h2_chunks, h2_header_indices = split_by_header(h1_block, r'^## .+', [0, h1_header_indices[h1_idx + 1] - h1_header_indices[h1_idx]])
+        h2_chunks, h2_header_indices = split_by_header(h1_block, r'^## .+', [0, get_chunk_end(h1_header_indices, h1_idx)])
         for h2_idx, h2_block in enumerate(h2_chunks):
             lines = h2_block.split('\n')
             h2_headers = [line.strip() for line in lines if re.match(r'^## .+', line)]
             h2_title = h2_headers[0].lstrip("##").strip() if h2_headers else None
 
-            h3_chunks, h3_header_indices = split_by_header(h2_block, r'^### .+', [0, h2_header_indices[h2_idx + 1] - h2_header_indices[h2_idx]])
+            h3_chunks, h3_header_indices = split_by_header(h2_block, r'^### .+', [0, get_chunk_end(h2_header_indices, h2_idx)])
 
             for h3_idx, h3_block in enumerate(h3_chunks):
                 lines = h3_block.split('\n')
@@ -83,7 +84,7 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
 
                 h3_title = h3_headers[0].lstrip("###").strip() if h3_headers else None
 
-                h4_chunks, h4_header_indices = split_by_header(h3_block, r'^#### .+', [0, h3_header_indices[h3_idx + 1] - h3_header_indices[h3_idx]])
+                h4_chunks, h4_header_indices = split_by_header(h3_block, r'^#### .+', [0, get_chunk_end(h3_header_indices, h3_idx)])
 
                 for h4_block in h4_chunks:
                     lines = h4_block.split('\n')
@@ -95,9 +96,15 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
                     print_block_info(rest_block)
 
                     while len(rest_block) > max_len:
-                        split_ind = find_nearest_sentence_end(rest_block, max_len)
 
-                        chunk = rest_block[0:split_ind].strip()
+                        new_max_len, heading_string = update_max_length_on_headings(rest_block, h1_title, h2_title, h3_title, h4_title, max_len)
+                        split_ind = find_nearest_sentence_end(rest_block, new_max_len)
+
+                        print(split_ind)
+
+                        print(len(heading_string))
+                        chunk = heading_string + rest_block[0:split_ind].strip()
+                        print(chunk)
 
                         chunks_with_meta.append((
                             chunk,
@@ -105,7 +112,9 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
                         ))
                         rest_block = rest_block[split_ind:]
 
-                    chunk = rest_block.strip()
+                    new_max_len, heading_string = update_max_length_on_headings(rest_block, h1_title, h2_title,
+                                                                                h3_title, h4_title, max_len)
+                    chunk = heading_string + rest_block.strip()
 
                     chunks_with_meta.append((
                         chunk,
@@ -114,10 +123,39 @@ def smart_chunk_markdown(markdown: str, max_len: int = 1500) -> List[Tuple[str, 
 
     return chunks_with_meta
 
+def get_chunk_end(header_indices, idx):
+    if len(header_indices) >= 2:
+        return header_indices[idx + 1] - header_indices[idx]
+    else:
+        return header_indices[idx]
+
+def update_max_length_on_headings(chunk, h1, h2, h3, h4, max_len):
+    lines = []
+    if h1 and f"# {h1}" not in chunk:
+        lines.append(f"# {h1}")
+    if h2 and f"## {h2}" not in chunk:
+        lines.append(f"## {h2}")
+    if h3 and f"### {h3}" not in chunk:
+        lines.append(f"### {h3}")
+    if h4 and f"#### {h4}" not in chunk:
+        lines.append(f"#### {h4}")
+
+    if not lines:
+        heading_string = ''
+    else:
+        heading_string = "\n".join(lines) + "\n"
+
+    new_max_len = max_len - len(heading_string)
+
+    if new_max_len > 0:
+        return new_max_len, heading_string
+    else:
+        return 0, heading_string
+
 def extract_section_info(chunk: str, headers: Dict[str, str]) -> Dict[str, Any]:
     """Fügt explizite Header-Metadaten und Basisstatistiken hinzu."""
     return {
-        "headers": f'#{headers.get("h1")}, ##{headers.get("h2")}, ####{headers.get("h3")}',
+        "headers": f'#{headers.get("h1")}, ##{headers.get("h2")}, ###{headers.get("h3")}',
         "char_count": len(chunk),
         "word_count": len(chunk.split())
     }

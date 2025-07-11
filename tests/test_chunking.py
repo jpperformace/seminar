@@ -15,9 +15,9 @@ def test_hierarchical_splitting_creates_all_chunks():
 
     expected_contents = [
         "# H1 Title\nIntro text",
-        "## H2 Title\nMore text",
-        "### H3 Title\nEven more",
-        "#### H4 Title\nDeep content",
+        "# H1 Title\n## H2 Title\nMore text",
+        "# H1 Title\n## H2 Title\n### H3 Title\nEven more",
+        "# H1 Title\n## H2 Title\n### H3 Title\n#### H4 Title\nDeep content",
     ]
 
     expected_titles = [
@@ -28,6 +28,7 @@ def test_hierarchical_splitting_creates_all_chunks():
     ]
 
     for i, (chunk_text, chunk_meta) in enumerate(chunks):
+        print(chunk_text)
         assert chunk_text == expected_contents[i], (
             f"Inhalt des Chunks {i} stimmt nicht:\n"
             f"Erwartet:\n{expected_contents[i]}\n\nErhalten:\n{chunk_text}"
@@ -61,9 +62,9 @@ def test_headers_only():
 
     expected_contents = [
         "# H1 Title",
-        "## H2 Title",
-        "### H3 Title",
-        "#### H4 Title",
+        "# H1 Title\n## H2 Title",
+        "# H1 Title\n## H2 Title\n### H3 Title",
+        "# H1 Title\n## H2 Title\n### H3 Title\n#### H4 Title",
     ]
 
     expected_titles = [
@@ -95,20 +96,20 @@ def test_chunk_split_by_max_length():
         assert chunk_meta == expected_meta, (
             f"Metadaten im Chunk {i} stimmen nicht:\nErwartet: {expected_meta}\nErhalten: {chunk_meta}"
         )
-        expected_length = 500 if i < 2 else 211
+        expected_length = 500 if i < 2 else 233
         assert len(chunk_text) == expected_length, (
             f"Chunk {i} hat falsche Länge:\nErwartet: {expected_length}, Erhalten: {len(chunk_text)}"
         )
 
 def test_chunking_splits_at_sentence_end():
-    md = "# Einleitung\nDies ist der erste Satz. Hier kommt der zweite Satz. Ein dritter Satz ist nun dabei! Und noch ein vierter. Fast Ende? Schließlich ein letzter Satz."
+    md = "# Einleitung\nDies ist der erste Satz. Hier kommt der zweite Satz. Ein dritter Satz! Und noch ein vierter. Fast Ende? Schließlich ein letzter Satz."
 
     max_len = 60
 
     expected_content_1 = "# Einleitung\nDies ist der erste Satz."
-    expected_content_2 = "Hier kommt der zweite Satz. Ein dritter Satz ist nun dabei!"
-    expected_content_3 = "Und noch ein vierter. Fast Ende?"
-    expected_content_4 = "Schließlich ein letzter Satz."
+    expected_content_2 = "# Einleitung\nHier kommt der zweite Satz. Ein dritter Satz!"
+    expected_content_3 = "# Einleitung\nUnd noch ein vierter. Fast Ende?"
+    expected_content_4 = "# Einleitung\nSchließlich ein letzter Satz."
 
     expected_meta = {'h1': 'Einleitung', 'h2': None, 'h3': None, 'h4': None}
 
@@ -151,25 +152,35 @@ def test_chunking_with_nested_headers():
         "Systeme wie ChatGPT verstehen und erzeugen Sprache, um mit Menschen auf natürliche Weise zu interagieren.\n"
     )
 
-    expexted_chunks_with_metadata = [
-        ("# KI\nEinführung in die Künstliche Intelligenz.", {"h1": "KI", "h2": None, "h3": None, "h4": None}),
-        ("## Geschichte\nDie Geschichte der KI begann in den 1950ern mit den ersten Theorien über maschinelles Denken.",
+    expected_chunks_with_metadata = [
+        ("# KI\nEinführung in die Künstliche Intelligenz.",
+         {"h1": "KI", "h2": None, "h3": None, "h4": None}),
+
+        ("# KI\n## Geschichte\nDie Geschichte der KI begann in den 1950ern mit den ersten Theorien über maschinelles Denken.",
          {"h1": "KI", "h2": "Geschichte", "h3": None, "h4": None}),
-        ("### Turing-Test\nEin Konzept von Alan Turing zur Bewertung von Maschinenintelligenz, das bis heute diskutiert wird.",
+
+        ("# KI\n## Geschichte\n### Turing-Test\nEin Konzept von Alan Turing zur Bewertung von Maschinenintelligenz, das bis heute diskutiert wird.",
          {"h1": "KI", "h2": "Geschichte", "h3": "Turing-Test", "h4": None}),
-        ("#### Definition\nDer Turing-Test prüft, ob eine Maschine menschlich wirkt, indem sie einen Menschen im Gespräch täuscht.",
+
+        ("# KI\n## Geschichte\n### Turing-Test\n#### Definition\nDer Turing-Test prüft, ob eine Maschine menschlich wirkt, indem sie einen Menschen im Gespräch täuscht.",
          {"h1": "KI", "h2": "Geschichte", "h3": "Turing-Test", "h4": "Definition"}),
-        ("#### Kritik\nDer Test misst nur Verhalten, nicht echtes Verstehen oder Bewusstsein der Maschine.",
+
+        ("# KI\n## Geschichte\n### Turing-Test\n#### Kritik\nDer Test misst nur Verhalten, nicht echtes Verstehen oder Bewusstsein der Maschine.",
          {"h1": "KI", "h2": "Geschichte", "h3": "Turing-Test", "h4": "Kritik"}),
-        ("### Symbolische KI\nEine der ersten KI-Methoden, bei der Wissen in logischen Regeln modelliert wird.",
+
+        ("# KI\n## Geschichte\n### Symbolische KI\nEine der ersten KI-Methoden, bei der Wissen in logischen Regeln modelliert wird.",
          {"h1": "KI", "h2": "Geschichte", "h3": "Symbolische KI", "h4": None}),
-        ("#### Expertensysteme\nProgramme wie MYCIN nutzten Regeln zur medizinischen Diagnose und waren in den 1980ern weit verbreitet.",
+
+        ("# KI\n## Geschichte\n### Symbolische KI\n#### Expertensysteme\nProgramme wie MYCIN nutzten Regeln zur medizinischen Diagnose und waren in den 1980ern weit verbreitet.",
          {"h1": "KI", "h2": "Geschichte", "h3": "Symbolische KI", "h4": "Expertensysteme"}),
-        ("## Anwendungen\nModerne KI findet Anwendung in vielen Bereichen wie Medizin, Finanzen und Bildung.",
+
+        ("# KI\n## Anwendungen\nModerne KI findet Anwendung in vielen Bereichen wie Medizin, Finanzen und Bildung.",
          {"h1": "KI", "h2": "Anwendungen", "h3": None, "h4": None}),
-        ("### NLP\nVerarbeitung natürlicher Sprache durch Maschinen ermöglicht neue Kommunikationsformen.",
+
+        ("# KI\n## Anwendungen\n### NLP\nVerarbeitung natürlicher Sprache durch Maschinen ermöglicht neue Kommunikationsformen.",
          {"h1": "KI", "h2": "Anwendungen", "h3": "NLP", "h4": None}),
-        ("#### Chatbots\nSysteme wie ChatGPT verstehen und erzeugen Sprache, um mit Menschen auf natürliche Weise zu interagieren.",
+
+        ("# KI\n## Anwendungen\n### NLP\n#### Chatbots\nSysteme wie ChatGPT verstehen und erzeugen Sprache, um mit Menschen auf natürliche Weise zu interagieren.",
          {"h1": "KI", "h2": "Anwendungen", "h3": "NLP", "h4": "Chatbots"}),
     ]
 
@@ -178,7 +189,7 @@ def test_chunking_with_nested_headers():
     assert len(chunks_with_metadata) == 10, "Es sollten insgesamt 10 Chunks entstehen, jeweils pro Überschrift (bei max_len=500)"
 
     for i, (chunk, meta) in enumerate(chunks_with_metadata):
-        expected_chunk, expected_meta = expexted_chunks_with_metadata[i]
+        expected_chunk, expected_meta = expected_chunks_with_metadata[i]
         assert chunk.strip() == expected_chunk.strip(), f"Chunk {i} stimmt nicht: \n{chunk} \n≠\n {expected_chunk}"
         assert meta == expected_meta, f"Metadaten {i} stimmen nicht: \n{meta} \n≠\n {expected_meta}"
 
@@ -191,13 +202,37 @@ def test_chunking_with_nested_headers_easy():
         "Das ist ein Satz für H2.1.\n\n"
         "# H1.2\n"
         "Das ist ein Satz für H1.2.\n\n"
-        "## H2.2\n"
-        "Das ist ein Satz für H2.2.\n\n"
+        "### H3.2\n"
+        "Das ist ein Satz für H3.2.\n\n"
     )
 
     chunks = smart_chunk_markdown(markdown, max_len=500)
 
-    assert len(chunks) == 4, "Es sollten insgesamt 10 Chunks entstehen, jeweils pro Überschrift (bei max_len=500)"
+    expected = [
+        (
+            "# H1.1\nDas ist ein Satz für H1.1.",
+            {"h1": "H1.1", "h2": None, "h3": None, "h4": None}
+        ),
+        (
+            "# H1.1\n## H2.1\nDas ist ein Satz für H2.1.",
+            {"h1": "H1.1", "h2": "H2.1", "h3": None, "h4": None}
+        ),
+        (
+            "# H1.2\nDas ist ein Satz für H1.2.",
+            {"h1": "H1.2", "h2": None, "h3": None, "h4": None}
+        ),
+        (
+            "# H1.2\n### H3.2\nDas ist ein Satz für H3.2.",
+            {"h1": "H1.2", "h2": None, "h3": "H3.2", "h4": None}
+        ),
+    ]
+
+    assert len(chunks) == len(
+        expected), f"Es sollten {len(expected)} Chunks entstehen, aber es wurden {len(chunks)} erzeugt."
+
+    for i, ((chunk_text, meta), (expected_text, expected_meta)) in enumerate(zip(chunks, expected)):
+        assert chunk_text.strip() == expected_text.strip(), f"Chunk {i} Text stimmt nicht:\n{chunk_text}\n\nErwartet:\n{expected_text}"
+        assert meta == expected_meta, f"Chunk {i} Metadaten stimmen nicht:\n{meta}\n\nErwartet:\n{expected_meta}"
 
 def test_empty_markdown_returns_empty_list():
     md = ""

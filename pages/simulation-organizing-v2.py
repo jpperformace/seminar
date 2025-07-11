@@ -176,7 +176,7 @@ col1_chatbot, col2_chatbot = st.columns([1, 1])
 questions = ['Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?',
              'Können am Entwickungsprozess des digitalen Produtkes / der Dienstleistung beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen?',
              'Wie ist die interne Kommunikation und Zusammenarbeit in Bezug auf "Usability und User Experience" im Entwicklungsprozess strukturiert?',
-             'In welchem Umfang ist die Einbindung von Nutzer im Entwicklungsprozess geplant?']
+             'In welchem Umfang ist die Einbindung von Nutzer im Entwicklungsprozess voraus geplant?']
 
 if "question_index" not in st.session_state:
     st.session_state.question_index = 0
@@ -187,7 +187,6 @@ if "question_asked_once" not in st.session_state:
 async def main():
 
     with col1_chatbot:
-        index = st.session_state.question_index
 
         with st.container(border=False):
             scroll_container = st.container()
@@ -201,10 +200,11 @@ async def main():
                         for part in msg.parts:
                             display_message_part(part)
 
+            index = st.session_state.question_index
+
             if index == 0 and not st.session_state.question_asked_once:
                 with st.chat_message("assistant"):
                     st.markdown(questions[index], unsafe_allow_html=True)
-                    print("assitent")
                     st.session_state.o_messages.extend(
                         [ModelResponse(parts=[TextPart(content=questions[index], part_kind='text')])])
                     st.session_state.question_asked_once = True
@@ -222,27 +222,7 @@ async def main():
 
             if user_input:
                 print('if user input')
-                if st.session_state.question_index <= len(questions):
-                    with st.chat_message("user"):
-                        st.markdown(user_input)
-                        st.session_state.question_index += 1
-                        index = st.session_state.question_index
-                        st.session_state.o_messages.extend([ModelRequest(parts=[UserPromptPart(content=user_input, part_kind='user-prompt')])])
-
-                    print(st.session_state.o_messages)
-
-                    if index < len(questions):
-                        with st.chat_message("assistant"):
-                            st.markdown(questions[index], unsafe_allow_html=True)
-                            st.session_state.o_messages.extend(
-                                [ModelResponse(parts=[TextPart(content=questions[index], part_kind='text')])])
-
-                print(st.session_state.question_index)
-
-
-
-                if st.session_state.question_index > len(questions):
-                    # optional Aufzeichnung
+                if st.session_state.question_index == len(questions):
                     with st.chat_message("user"):
                         st.markdown(user_input)
 
@@ -253,6 +233,24 @@ async def main():
                             full_response += message
                             message_placeholder.markdown(full_response + "▌")
                         message_placeholder.markdown(full_response)
+
+                if st.session_state.question_index < len(questions):
+                    with st.chat_message("user"):
+                        st.markdown(user_input)
+                        st.session_state.o_messages.extend([ModelRequest(parts=[UserPromptPart(content=user_input, part_kind='user-prompt')])])
+
+                    st.session_state.question_index += 1
+                    index = st.session_state.question_index
+                    print('Plus 1')
+
+                    if index < len(questions):
+                        with st.chat_message("assistant"):
+                            st.markdown(questions[index], unsafe_allow_html=True)
+                            st.session_state.o_messages.extend(
+                                [ModelResponse(parts=[TextPart(content=questions[index], part_kind='text')])])
+
+                print(st.session_state.question_index)
+
 
 
 if __name__ == "__main__":
