@@ -4,14 +4,14 @@ import os
 import sys
 import argparse
 from dataclasses import dataclass
-from typing import Optional
+
 import asyncio
 import chromadb
 
 import dotenv
 from pydantic_ai import RunContext
 from pydantic_ai.agent import Agent
-from openai import AsyncOpenAI
+
 
 # Load environment variables from .env file
 dotenv.load_dotenv()

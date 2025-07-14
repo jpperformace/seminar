@@ -66,6 +66,5 @@ async def evaluate_phase(eingabe: BewertungEingabe, phase: str):
     )
 
     response = await quan_rat_agent.run(user_prompt=prompt)
-    print(response)
 
     return response

@@ -4,7 +4,11 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart, Te
 import asyncio
 
 from agents.agent_loader import get_agent
+from agents.assign_response_agent import response_agent, AssignResponseInput, assign_user_input
+from agents.quantitative_rating_agent import evaluate_phase, Phasen, BewertungEingabe
 from agents.rag_agent import chat_agent
+from audit_ratings.reponse_options_organizing import organizing_question_1, organizing_question_3, \
+    organizing_question_4, organizing_question_2
 
 load_dotenv()
 
@@ -47,6 +51,18 @@ if "o_messages" not in st.session_state:
 if "agent_deps" not in st.session_state:
     with st.spinner("Initialisiere KI-Agent..."):
         st.session_state.agent_deps = get_agent()
+
+if "user_response" not in st.session_state:
+    st.session_state.user_response = []
+
+if "question_index" not in st.session_state:
+    st.session_state.question_index = 0
+
+if "question_asked_once" not in st.session_state:
+    st.session_state.question_asked_once = False
+
+if "got_valid_response" not in st.session_state:
+    st.session_state.got_valid_response = False
 
 # ─────────────────────────────────────────────────────────────
 
@@ -174,15 +190,16 @@ with st.container():
 col1_chatbot, col2_chatbot = st.columns([1, 1])
 
 questions = ['Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?',
-             'Können am Entwickungsprozess des digitalen Produtkes / der Dienstleistung beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen?',
+             'Können am Entwickungsprozess des digitalen Produktes / der Dienstleistung beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen?',
              'Wie ist die interne Kommunikation und Zusammenarbeit in Bezug auf "Usability und User Experience" im Entwicklungsprozess strukturiert?',
              'In welchem Umfang ist die Einbindung von Nutzer im Entwicklungsprozess voraus geplant?']
 
-if "question_index" not in st.session_state:
-    st.session_state.question_index = 0
-
-if "question_asked_once" not in st.session_state:
-    st.session_state.question_asked_once = False
+response_options = [
+    [option.text for option in organizing_question_1],
+    [option.text for option in organizing_question_2],
+    [option.text for option in organizing_question_3],
+    [option.text for option in organizing_question_4]
+]
 
 async def main():
 
@@ -190,9 +207,6 @@ async def main():
 
         with st.container(border=False):
             scroll_container = st.container()
-
-            print("beginning")
-            print(st.session_state.o_messages)
 
             with scroll_container:
                 for msg in st.session_state.o_messages:
@@ -209,19 +223,12 @@ async def main():
                         [ModelResponse(parts=[TextPart(content=questions[index], part_kind='text')])])
                     st.session_state.question_asked_once = True
 
-            print("messages")
-
-
-
             with st.container():
                 user_input = st.chat_input(key='content_input', placeholder="Was möchtest du wissen?")
                 button_css = float_css_helper(width="37%", bottom="0.3rem", transition=0)
                 float_parent(css=button_css)
 
-            print('Index: ', index)
-
             if user_input:
-                print('if user input')
                 if st.session_state.question_index == len(questions):
                     with st.chat_message("user"):
                         st.markdown(user_input)
@@ -238,19 +245,54 @@ async def main():
                     with st.chat_message("user"):
                         st.markdown(user_input)
                         st.session_state.o_messages.extend([ModelRequest(parts=[UserPromptPart(content=user_input, part_kind='user-prompt')])])
+                        eingabe = AssignResponseInput(frage= questions[st.session_state.question_index],
+                                                      nutzereingabe=user_input,
+                                                      antwortoptionen=response_options[st.session_state.question_index])
 
-                    st.session_state.question_index += 1
-                    index = st.session_state.question_index
-                    print('Plus 1')
+                        result = await assign_user_input(eingabe)
 
-                    if index < len(questions):
+                    assigned_resp = result.output.assigned_response
+                    if assigned_resp is None or assigned_resp == 'None':
+                        with st.chat_message("assistant"):
+                            st.markdown(result.output.error_message, unsafe_allow_html=True)
+                            st.session_state.o_messages.extend(
+                                [ModelResponse(parts=[TextPart(content=result.output.error_message, part_kind='text')])])
+                            st.session_state.got_valid_response = False
+                    else:
+                        st.session_state.got_valid_response = True
+                        st.session_state.user_response.append(assigned_resp)
+
+                    if st.session_state.got_valid_response:
+                        st.session_state.question_index += 1
+                        index = st.session_state.question_index
+
+                    if index < len(questions) and st.session_state.got_valid_response:
                         with st.chat_message("assistant"):
                             st.markdown(questions[index], unsafe_allow_html=True)
                             st.session_state.o_messages.extend(
                                 [ModelResponse(parts=[TextPart(content=questions[index], part_kind='text')])])
 
-                print(st.session_state.question_index)
+                    repos = st.session_state.user_response
 
+                    print(st.session_state.user_response)
+
+                    if len(repos) == 4:
+                        a1 = next(a for a in organizing_question_1 if a.text == repos[0])
+                        a2 = next(a for a in organizing_question_2 if a.text == repos[1])
+                        a3 = next(a for a in organizing_question_3 if a.text == repos[2])
+                        a4 = next(a for a in organizing_question_4 if a.text == repos[3])
+                        with st.chat_message("assistant"):
+                            response = await evaluate_phase(BewertungEingabe(antwort1=a1, antwort2=a2, antwort3=a3, antwort4=a4),
+                                               phase=Phasen.ORGANIZING.value)
+                            print(response)
+                            st.markdown(response.output, unsafe_allow_html=True)
+                            st.session_state.o_messages.extend(
+                                [ModelResponse(parts=[TextPart(content=response.output, part_kind='text')])])
+                            st.session_state.user_response = []
+
+
+
+                print(st.session_state.question_index)
 
 
 if __name__ == "__main__":
