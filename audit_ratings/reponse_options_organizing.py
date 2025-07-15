@@ -139,7 +139,7 @@ organizing_question_3 = [
             )
         ),
         Antwortoption(
-            text='Es gibt keine spezifische Kommunikation zu UUX.".',
+            text='Es gibt keine spezifische Kommunikation zu UUX.',
             punkte=0,
             bewertung="Ungenügend – nicht zertifizierungsfähig",
             begruendung=(
@@ -153,7 +153,7 @@ organizing_question_3 = [
         )
 ]
 
-organizing_question_4 = [
+alt_organizing_question_4 = [
         Antwortoption(
             text=(
                 "Es gibt eine verbindliche und dokumentierte Planung, wie und wann Nutzer systematisch in mehreren Projektphasen "

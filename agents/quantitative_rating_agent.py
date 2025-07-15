@@ -20,22 +20,30 @@ class Antwortoption(BaseModel):
     verbesserungpotential: str
 
 class BewertungEingabe(BaseModel):
-    antwort1: Antwortoption
-    antwort2: Antwortoption
-    antwort3: Antwortoption
-    antwort4: Antwortoption
+    antwortoptionen: list[Antwortoption]
+
+class BewertungAusgabe(BaseModel):
+    gesamtbewertungstext: str
+    gesamtbewertung: str
+    gesamtbegruendung: str
+    gesamtverbesserungspotential: str
 
 quan_rat_agent = Agent(
     os.getenv("MODEL_CHOICE", "gpt-4.1-mini"),
+    output_type=BewertungAusgabe,
     system_prompt=(
         "Du bist ein hilfreicher Assistent zur Reifegradbewertung in Audits zur nutzerzentrierten Entwicklung. "
         "Du soll eine subjektive Einschätzung geben, ob eine Zertifizierung möglich ist."
         "Deine Aufgabe ist es, basierend auf vier Antworten, eine Tendenz für den Reifegrad in der jeweilgen Phase "
-        "zu geben. Dafur werden dir bereits Bewertung, Begründung und Verbesserungspotentiale übergeben." 
+        "zu geben. Dafur werden dir bereits Bewertung, Begründung und Verbesserungspotentiale der einzelnen Antworten übergeben."
+        "In dem Feld 'gesamtbewertungstext' soll einem kurzen und durch Absätze sturkturierter Text über der Gesamteinschätzung sein."
         "Begründe mit den übergebenen Informationen kausal, damit deutlich wird wie die Gesamtbewertung zurstande kommt."
         "Schreibe die Bewertung kompakt und stelle transparent dar, dass es sich um eine subjektive Einschätzung handelt "
         "basierend auf den Eingabedaten handelt. Mache deutlich, dass eine eindeutige Bewertung durch einen Auditor"
         "getroffen werden kann und man diesen bei Unstimmigkeiten immer zu raten ziehen sollte."
+        "Füge ganz am Ende hinzu, dass Rückfragen zur Beurteilung wie auch zu Methoden und KI-Tools der Phase gestellt werden können."
+        "Die Felder 'gesamtbewertung', 'gesamtbegruendung' und 'gesamtverbesserungspotential' sollen die einzelnen Punkte verständlich," 
+        "aber trotzdem kurz und prägnant zusammenfassen."
     )
 )
 
@@ -44,9 +52,7 @@ async def evaluate_phase(eingabe: BewertungEingabe, phase: str):
         f"Bewerte die Phase '{phase}' im Audit zur nutzerzentrierten Entwicklung anhand folgender "
         "vordefinierter Bewertungsschema für die gegebenen Antworten:\n\n"
     )
-    for i, antwort in enumerate(
-        [eingabe.antwort1, eingabe.antwort2, eingabe.antwort3, eingabe.antwort4], 1
-    ):
+    for i, antwort in enumerate(eingabe.antwortoptionen, 1):
         prompt += (
             f"Antwort {i}:\n"
             f"Text: {antwort.text}\n"

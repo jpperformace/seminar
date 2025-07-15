@@ -1,21 +1,33 @@
+import textwrap
+
 from dotenv import load_dotenv
 from streamlit_float import *
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart, TextPart
 import asyncio
 
 from agents.agent_loader import get_agent
-from agents.assign_response_agent import response_agent, AssignResponseInput, assign_user_input
+from agents.assign_response_agent import AssignResponseInput, assign_user_input
 from agents.quantitative_rating_agent import evaluate_phase, Phasen, BewertungEingabe
 from agents.rag_agent import chat_agent
-from audit_ratings.reponse_options_organizing import organizing_question_1, organizing_question_3, \
-    organizing_question_4, organizing_question_2
+from audit_ratings.reponse_options_organizing import organizing_question_1, organizing_question_3, organizing_question_2
 
 load_dotenv()
 
 st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
-st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation')
+st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation V1')
 st.sidebar.page_link('pages/simulation-organizing-v2.py', label='Audit Simulation V2')
+
+st.markdown(
+    """
+   <style>
+   [data-testid="stSidebar"][aria-expanded="true"]{
+       min-width: 15%;
+       max-width: 15%;
+   }
+   """,
+    unsafe_allow_html=True,
+)
 
 float_init(theme=True, include_unstable_primary=False)
 
@@ -29,24 +41,53 @@ def display_message_part(part):
         with st.chat_message("assistant"):
             st.markdown(part.content)
 
+def update_document(bewertung:str, begruendung:str, verbessung:str):
+    new_text = f"""
+<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+<span style="font-size: 1.3rem; position: relative; top: -5px;">💡</span>
+<h4 style="margin: 0;">Einschätzung und Potenzialanalyse</h4>
+</div>
+<div style="font-size: 0.85rem;">
+<strong>Phase: Organisieren</strong><br>
+<ul style="margin-top: 0.5rem; padding-left: 1.2rem;">
+<li><strong>Bewertung:</strong> {bewertung}</li>
+<li><strong>Begründung:</strong> {begruendung}</li>
+<li><strong>Verbesserungsvorschlag:</strong> {verbessung}</li>
+</ul>
+</div>
+    """
+    st.session_state.doc_text = new_text
+
+
 async def run_agent_with_streaming(user_input):
     async with chat_agent.run_stream(
         user_input,
         deps=st.session_state.agent_deps,
-        message_history=st.session_state.o_messages
+        message_history=st.session_state.org_chat_messages
     ) as result:
         async for message in result.stream_text(delta=True):
             yield message
-    st.session_state.o_messages.extend(result.new_messages())
+    st.session_state.org_chat_messages.extend(result.new_messages())
 
 # ─────────────────────────────────────────────────────────────
 # Init session state
 
+default_text = textwrap.dedent("""
+<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+<span style="font-size: 1.3rem; position: relative; top: -5px;">💡</span>
+<h4 style="margin: 0;">Hinweis:</h4>
+</div>
+<p>
+An dieser Stelle wird zukünftig ein zusammenfassendes Dokument zur Einschätzung und Potenzialanalyse für das Siegel <strong>„Nutzerzentriert Entwickelt“</strong> angezeigt.
+Es fasst zentrale Erkenntnisse der Analysephase, die durch die interaktive Konversation mit dem KI-Assistenten gewonnen wurden, zusammen und bietet einen Überblick über empfohlene nächste Schritte im weiteren Entwicklungsprozess.
+</p>
+    """)
+
 if "contents" not in st.session_state:
     st.session_state.contents = []
 
-if "o_messages" not in st.session_state:
-    st.session_state.o_messages = []
+if "org_chat_messages" not in st.session_state:
+    st.session_state.org_chat_messages = []
 
 if "agent_deps" not in st.session_state:
     with st.spinner("Initialisiere KI-Agent..."):
@@ -63,6 +104,12 @@ if "question_asked_once" not in st.session_state:
 
 if "got_valid_response" not in st.session_state:
     st.session_state.got_valid_response = False
+
+if "have_ux_expert" not in st.session_state:
+    st.session_state.have_ux_expert = False
+
+if "doc_text" not in st.session_state:
+    st.session_state.doc_text = default_text
 
 # ─────────────────────────────────────────────────────────────
 
@@ -104,112 +151,34 @@ st.markdown("""
 <div style="height: 20px; background-color: white;"></div>
 """, unsafe_allow_html=True)
 
-with st.container():
-    col1_context, col2_context = st.columns([1, 1])
-
-    with col1_context:
-        st.markdown("""
-        <div style="height: 10px; background-color: white;"></div>
-        """, unsafe_allow_html=True)
-
-
-
-
-
-with st.container():
-    right_float_css = float_css_helper(
-        width="38%",
-        top="10rem",
-        right="2rem",
-        transition=0,
-        additional_css="""
-            background-color: #f9f9f9;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            z-index: 999;
-            height: 30%;
-        """
-    )
-
-    with st.container():
-        col1_info, col2_info = st.columns([1, 1])
-        with col1_info:
-            st.markdown("""
-            <div style='font-size: 0.85rem'>
-            <h4 style="margin: 0;">Phase: Organisieren</h4>
-            Die Phase Organisation umfasst alle organisatorischen Elemente, die sicherstellen, dass die Kunden- und
-            Benutzererfahrung eine hohe Priorität im Unternehmen hat. Dazu gehören die Verankerung einer agilen
-            Denkweise, die Zuweisung geeigneter Budgets und das Vorhandensein engagierter UX-Experten.
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown(
-                """
-                <div style="height:0.1rem; background-color:white; width:100%;"></div>
-                """,
-                unsafe_allow_html=True
-            )
-            if st.button("Wechsle in nächste Phase", use_container_width=True):
-                st.switch_page("pages/simulation-understanding.py")
-        with col2_info:
-            st.image("pictures/ucd_process_organizing.png", use_container_width=True)
-
-        # Float für den gesamten Block
-        float_parent(css=right_float_css)
-
-with st.container():
-    right_float_css = """
-        position: fixed;
-        width: 38%;
-        top: 30rem;
-        right: 2rem;
-        background-color: #f9f9f9;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        z-index: 999;
-        height: 45%;
-        overflow-y: auto;
-    """
-
-    st.markdown(f"""
-    <div style="{right_float_css}">
-        <div style="font-size: 0.85rem; line-height: 1.5; color: #333;">
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-              <span style="font-size: 1.3rem; position: relative; top: -5px;">💡</span>
-              <h4 style="margin: 0;">Hinweis:</h4>
-            </div>
-            <p>
-                An dieser Stelle wird zukünftig ein zusammenfassendes Dokument zur Einschätzung und Potenzialanalyse für das Siegel <strong>„Nutzerzentriert Entwickelt“</strong> angezeigt.
-                Es fasst zentrale Erkenntnisse der Analysephase, die durch die interaktive Konversation mit dem KI-Assistenten gewonnen wurden, zusammen und bietet einen Überblick über empfohlene nächste Schritte im weiteren Entwicklungsprozess.
-            </p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
 
 col1_chatbot, col2_chatbot = st.columns([1, 1])
 
 questions = ['Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?',
+             'Gibt es ein UX-Experten in Ihrem Unternehmen?',
              'Können am Entwickungsprozess des digitalen Produktes / der Dienstleistung beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen?',
-             'Wie ist die interne Kommunikation und Zusammenarbeit in Bezug auf "Usability und User Experience" im Entwicklungsprozess strukturiert?',
-             'In welchem Umfang ist die Einbindung von Nutzer im Entwicklungsprozess voraus geplant?']
+             'Wie ist die interne Kommunikation und Zusammenarbeit in Bezug auf "Usability und User Experience" im Entwicklungsprozess strukturiert?']
 
 response_options = [
     [option.text for option in organizing_question_1],
+    ['True', 'False'],
     [option.text for option in organizing_question_2],
-    [option.text for option in organizing_question_3],
-    [option.text for option in organizing_question_4]
+    [option.text for option in organizing_question_3]
 ]
+
+expert_response = organizing_question_1[1].text
+
+
+
 
 async def main():
 
     with col1_chatbot:
-
         with st.container(border=False):
             scroll_container = st.container()
 
             with scroll_container:
-                for msg in st.session_state.o_messages:
+                for msg in st.session_state.org_chat_messages:
                     if isinstance(msg, (ModelRequest, ModelResponse)):
                         for part in msg.parts:
                             display_message_part(part)
@@ -219,7 +188,7 @@ async def main():
             if index == 0 and not st.session_state.question_asked_once:
                 with st.chat_message("assistant"):
                     st.markdown(questions[index], unsafe_allow_html=True)
-                    st.session_state.o_messages.extend(
+                    st.session_state.org_chat_messages.extend(
                         [ModelResponse(parts=[TextPart(content=questions[index], part_kind='text')])])
                     st.session_state.question_asked_once = True
 
@@ -244,7 +213,7 @@ async def main():
                 if st.session_state.question_index < len(questions):
                     with st.chat_message("user"):
                         st.markdown(user_input)
-                        st.session_state.o_messages.extend([ModelRequest(parts=[UserPromptPart(content=user_input, part_kind='user-prompt')])])
+                        st.session_state.org_chat_messages.extend([ModelRequest(parts=[UserPromptPart(content=user_input, part_kind='user-prompt')])])
                         eingabe = AssignResponseInput(frage= questions[st.session_state.question_index],
                                                       nutzereingabe=user_input,
                                                       antwortoptionen=response_options[st.session_state.question_index])
@@ -252,43 +221,53 @@ async def main():
                         result = await assign_user_input(eingabe)
 
                     assigned_resp = result.output.assigned_response
+
                     if assigned_resp is None or assigned_resp == 'None':
                         with st.chat_message("assistant"):
                             st.markdown(result.output.error_message, unsafe_allow_html=True)
-                            st.session_state.o_messages.extend(
+                            st.session_state.org_chat_messages.extend(
                                 [ModelResponse(parts=[TextPart(content=result.output.error_message, part_kind='text')])])
                             st.session_state.got_valid_response = False
                     else:
                         st.session_state.got_valid_response = True
-                        st.session_state.user_response.append(assigned_resp)
+                        if st.session_state.question_index != 1:
+                            st.session_state.user_response.append(assigned_resp)
+                        else:
+                            if assigned_resp == 'True':
+                                st.session_state.have_ux_expert = True
+
 
                     if st.session_state.got_valid_response:
+                        if assigned_resp == expert_response:
+                            st.session_state.question_index += 1
+                            st.session_state.have_ux_expert = True
                         st.session_state.question_index += 1
                         index = st.session_state.question_index
 
                     if index < len(questions) and st.session_state.got_valid_response:
                         with st.chat_message("assistant"):
                             st.markdown(questions[index], unsafe_allow_html=True)
-                            st.session_state.o_messages.extend(
+                            st.session_state.org_chat_messages.extend(
                                 [ModelResponse(parts=[TextPart(content=questions[index], part_kind='text')])])
 
                     repos = st.session_state.user_response
 
                     print(st.session_state.user_response)
+                    print(st.session_state.have_ux_expert)
 
-                    if len(repos) == 4:
+                    if len(repos) + 1 == len(response_options):
                         a1 = next(a for a in organizing_question_1 if a.text == repos[0])
                         a2 = next(a for a in organizing_question_2 if a.text == repos[1])
                         a3 = next(a for a in organizing_question_3 if a.text == repos[2])
-                        a4 = next(a for a in organizing_question_4 if a.text == repos[3])
                         with st.chat_message("assistant"):
-                            response = await evaluate_phase(BewertungEingabe(antwort1=a1, antwort2=a2, antwort3=a3, antwort4=a4),
+                            response = await evaluate_phase(BewertungEingabe(antwortoptionen=[a1, a2, a3]),
                                                phase=Phasen.ORGANIZING.value)
                             print(response)
-                            st.markdown(response.output, unsafe_allow_html=True)
-                            st.session_state.o_messages.extend(
-                                [ModelResponse(parts=[TextPart(content=response.output, part_kind='text')])])
+                            st.markdown(response.output.gesamtbewertungstext, unsafe_allow_html=True)
+                            st.session_state.org_chat_messages.extend(
+                                [ModelResponse(parts=[TextPart(content=response.output.gesamtbewertungstext, part_kind='text')])])
                             st.session_state.user_response = []
+                            update_document(response.output.gesamtbewertung, response.output.gesamtbegruendung, response.output.gesamtverbesserungspotential)
 
 
 
@@ -297,3 +276,86 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+with st.container():
+    right_float_css = float_css_helper(
+        width="38%",
+        top="10rem",
+        right="2rem",
+        transition=0,
+        height="25%",
+        additional_css="""
+            background-color: #f9f9f9;
+            border-radius: 0.5rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 999;
+        """
+    )
+
+    st.markdown(
+        """
+    <style>
+    button[kind="tertiary"] {
+        height: auto;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+    }
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    col1_info, mid, col2_info = st.columns([6,1,4])
+    with col1_info:
+
+        sub_col1, sub_col2 = st.columns([5, 1])
+        with sub_col1:
+            st.markdown("""
+                   <div style='font-size: 0.85rem'>
+                       <h4 style="margin: 0;">Phase: Organisieren</h4>
+                   </div>
+               """, unsafe_allow_html=True)
+        with sub_col2:
+
+            st.button("ℹ️",
+                      help="""Die Phase Organisation umfasst alle organisatorischen Elemente, die sicherstellen, 
+                      dass die Benutzererfahrung eine hohe Priorität im Unternehmen hat. Dazu gehören die 
+                      Verankerung einer nutzerzentrierten Denkweise und das Vorhandensein von UX-Experten.""",
+                      type="tertiary")
+
+
+
+        if st.button("Wechsle in nächste Phase", use_container_width=True):
+            st.switch_page("pages/simulation-understanding.py")
+
+    with col2_info:
+        st.image("pictures/ucd_process_organizing.png", use_container_width=True)
+
+    float_parent(css=right_float_css)
+
+with st.container():
+    right_float_css = textwrap.dedent("""
+        position: fixed;
+        width: 38%;
+        top: 50%;
+        right: 2rem;
+        background-color: #f9f9f9;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        z-index: 999;
+        height: 40%;
+        overflow-y: auto;
+    """).replace("\n", " ")
+
+    text = f"""
+<div style="{right_float_css}">
+<div style="font-size: 0.85rem; line-height: 1.5; color: #333;">
+{st.session_state.doc_text}
+</div>
+</div>
+    """
+    print(text)
+    st.markdown(text, unsafe_allow_html=True)

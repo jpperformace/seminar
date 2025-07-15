@@ -2,10 +2,9 @@ import streamlit as st
 
 st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
-st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation')
+st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation V1')
 st.sidebar.page_link('pages/simulation-organizing-v2.py', label='Audit Simulation V2')
 
-# Optional: Hintergrundfarbe für mehr "Fülle"
 st.markdown(
     """
     <style>
