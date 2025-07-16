@@ -54,16 +54,8 @@ chat_agent = Agent(
                   "in the current documentation and provide your best general knowledge response."
 )
 
-
-neo4j_uri = os.environ.get('NEO4J_URI', 'bolt://localhost:7687')
-neo4j_user = os.environ.get('NEO4J_USER', 'neo4j')
-neo4j_password = os.environ.get('NEO4J_PASSWORD', 'password')
-
-if not neo4j_uri or not neo4j_user or not neo4j_password:
-    raise ValueError('NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set')
-
 @chat_agent.tool
-async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: int = 5) -> str:
+async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: int = 10) -> str:
     """Retrieve relevant documents from ChromaDB based on a search query.
     
     Args:
@@ -82,7 +74,9 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
         embedding_model_name=context.deps.embedding_model
     )
 
+    print("Retrieving documents...")
     print(collection)
+    print(search_query)
 
     # Query the collection
     query_results = query_collection(
@@ -90,6 +84,8 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
         search_query,
         n_results=n_results
     )
+
+    print(query_results)
 
     formatted_context = format_results_as_context(query_results)
 
@@ -131,7 +127,8 @@ async def run_rag_agent(
         collection_name=collection_name,
         embedding_model=embedding_model
     )
-    
+    print("Running RAG agent...")
+    print(question)
     # Run the agent
     result = await chat_agent.run(question, deps=deps)
     

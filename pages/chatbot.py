@@ -15,8 +15,7 @@ load_dotenv()
 
 st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
-st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation V1')
-st.sidebar.page_link('pages/simulation-organizing-v2.py', label='Audit Simulation V2')
+st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation')
 
 def display_message_part(part):
     """
@@ -67,6 +66,7 @@ async def main():
     # Initialize chat history in session state if not present
     if "messages" not in st.session_state:
         st.session_state.messages = []
+
     if "agent_deps" not in st.session_state:
         with st.spinner("Initialisiere Agent..."):
             st.session_state.agent_deps = get_agent()
