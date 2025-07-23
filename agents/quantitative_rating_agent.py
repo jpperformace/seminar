@@ -28,6 +28,8 @@ class BewertungAusgabe(BaseModel):
     gesamtbewertung: str
     gesamtbegruendung: str
     gesamtverbesserungspotential: str
+    methoden:str
+    ki_tools: str
 
 quan_rat_agent = Agent(
     os.getenv("MODEL_CHOICE", "gpt-4.1-mini"),
@@ -45,14 +47,24 @@ quan_rat_agent = Agent(
         "getroffen werden kann und man diesen bei Unstimmigkeiten immer zu raten ziehen sollte."
         "Füge ganz am Ende hinzu, dass Rückfragen zur Beurteilung wie auch zu Methoden und KI-Tools der Phase gestellt werden können."
         "Die Felder 'gesamtbewertung', 'gesamtbegruendung' und 'gesamtverbesserungspotential' sollen die einzelnen Punkte verständlich," 
-        "aber trotzdem kurz und prägnant zusammenfassen."
+        "aber trotzdem kurz und prägnant zusammenfassen. "
+        "In den Feldern 'Methoden' und 'KI-Tools' soll ergänzend auf Zielebene aufgezeigt werden, welche weiteren Maßnahmen sinnvoll wären."
+        "Der Fokus liegt dabei auf konstruktiven, zielgerichteten Vorschlägen."
+        "Gib nur zusammenhängende Texte keine Aufzählungen innerhalb der Felder zurück."
     )
 )
 
-async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, phase: str, methoden:Optional[str] = None):
+async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, phase: str, ux_erfahrung: str, methoden:str, ki_tools:str):
     prompt = (
         f"Bewerte die Phase '{phase}' im Audit zur nutzerzentrierten Entwicklung anhand folgender "
         "vordefinierter Bewertungsschema für die gegebenen Antworten:\n\n"
+        f"Entsprchend der UX Erfahrug: {ux_erfahrung}, soll die Fokus der Erklärung angepasst werden und die Begründung einen unterschiedlichen Detailgrad haben"
+        "- Bei **wenig Erfahrung**:\n"
+        "  - Erkläre verwendete Fachbegriffe (Terminologie) verständlich.\n"
+        "  - Lege besonderen Wert auf eine nachvollziehbare und gut begründete Bewertung (Justification).\n\n"
+        "- Bei **erfahreneren Unternehmen**:\n"
+        "  - Achte besonders auf die Nachvollziehbarkeit der Argumentation (Trace).\n"
+        "  - Die Begründung soll klar, prägnant und fachlich fundiert sein.\n\n"
     )
     for i, antwort in enumerate(antworten.antwortoptionen, 0):
         print(nutzereingabe[i])
@@ -61,22 +73,24 @@ async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, p
             f"Text: {antwort.text}\n"
             f"Eingabe: {nutzereingabe[i]}\n"
             f"Hinweis: {antwort.hinweis}\n"
-            f"Hinweis: {methoden}\n"
+            f"Methoden: {methoden}\n"
+            f"KI-Tools: {methoden}\n"
             f"Punkte: {antwort.punkte}\n"
             f"Bewertung: {antwort.bewertung}\n"
             f"Begründung: {antwort.begruendung}\n"
             f"Verbesserungspotential: {antwort.verbesserungpotential}\n\n"
         )
     prompt += (
-        f"Gib eine Gesamtbewertung mit kausaler Begründung für die Phase {phase} zurück. Diese soll in kurzer Form erklärend, causal und selektiv sein. "
-        f"Die Gesamtbewertung wird auf Grundlage der Einzelbewertungen getroffen. Es soll eindeutig sein, an welchen Stelle noch Schwächen sind."
-        "Beachte den Hinweis bei deiner Begründung, falls dieser nicht leer ist."
-        "Füge die vorgeschlagenen Methoden, falls vorhanden in den Verbesserungsvorschlag und den Bewertungstext ein."
-        "Formatiere die Antwort in Markdown. Fasse diese Informationen bitte kompakt und zusammengefasst zu einer "
-        f"vorläufigen Bewertung der Phase {phase} zusammen. Verwende als Überschrift:\n\n"
-        f"#### Vorläufige Bewertung der Phase {phase}\n\n" 
-        "Beginne mit 'Ihr Unternehmen weißt insgesamt..."
-        "Die einzelnen Antworten sollen nicht explizit genannt werden. "
+        f"Gib eine **Gesamtbewertung** der Phase **{phase}** ab, mit einer **kausalen Begründung**, "
+        "die kompakt, erklärend und selektiv formuliert ist. Die Bewertung soll auf den Einzelbewertungen beruhen "
+        "und klar aufzeigen, an welchen Stellen noch Schwächen bestehen.\n\n"
+        "- Berücksichtige die gegebenen Hinweise, sofern vorhanden.\n"
+        "- Integriere die vorgeschlagenen Methoden und KI-Tools in den Verbesserungsvorschlag.\n"
+        "- Formatiere die Antwort in **Markdown**.\n"
+        "- Fasse alle Informationen in einer zusammenhängenden Einschätzung zusammen, ohne die einzelnen Antworten explizit aufzuführen.\n"
+        "- Verwende als Überschrift:\n\n"
+        f"#### Vorläufige Bewertung der Phase {phase}\n\n"
+        "- Beginne den Text mit: **'Ihr Unternehmen weist insgesamt...**'\n"
     )
 
     response = await quan_rat_agent.run(user_prompt=prompt)

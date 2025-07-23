@@ -6,6 +6,8 @@ import argparse
 from dataclasses import dataclass
 
 import asyncio
+from typing import Optional
+
 import chromadb
 
 import dotenv
@@ -42,6 +44,7 @@ class RAGDeps:
     chroma_client: chromadb.PersistentClient
     collection_name: str
     embedding_model: str
+    condition: Optional[str] = None
 
 
 # Create the RAG agent
@@ -52,6 +55,8 @@ chat_agent = Agent(
                   "Use the retrieve tool to get relevant information from the documentation before answering. "
                   "If the documentation doesn't contain the answer, clearly state that the information isn't available "
                   "in the current documentation and provide your best general knowledge response."
+                  "In addition, always consider any explicitly provided **post-condition** that may constrain or qualify the answer — "
+                  "for example, a required negation or exclusion that is not directly reflected in the retrieved context. "
 )
 
 @chat_agent.tool
@@ -75,8 +80,10 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
     )
 
     print("Retrieving documents...")
+    print(n_results)
     print(collection)
     print(search_query)
+    print(context.deps.condition)
 
     # Query the collection
     query_results = query_collection(
@@ -85,9 +92,7 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
         n_results=n_results
     )
 
-    print(query_results)
-
-    formatted_context = format_results_as_context(query_results)
+    formatted_context = format_results_as_context(query_results, context.deps.condition)
 
     print(f"\n=== Retrieved Context ===\n")
     print(formatted_context)

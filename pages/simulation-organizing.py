@@ -1,4 +1,5 @@
 import textwrap
+from typing import Optional
 
 from dotenv import load_dotenv
 from streamlit_float import *
@@ -9,6 +10,7 @@ from agents.agent_loader import get_agent
 from agents.assign_response_agent import AssignResponseInput, assign_user_input
 from agents.quantitative_rating_agent import evaluate_phase, Phasen, BewertungEingabe
 from agents.rag_agent import chat_agent
+from ui.messages import get_new_review_text, get_default_hint_text, get_review_heading
 from audit_ratings.response_options_organizing import organizing_question_1, organizing_question_3, organizing_question_2
 
 load_dotenv()
@@ -40,29 +42,15 @@ def display_message_part(part):
         with st.chat_message("assistant"):
             st.markdown(part.content)
 
-def update_document(bewertung:str, begruendung:str, verbessung:str):
-    new_text = f"""
-<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-<span style="font-size: 1.3rem; position: relative; top: -5px;">💡</span>
-<h4 style="margin: 0;">Einschätzung und Potenzialanalyse</h4>
-</div>
-<div style="font-size: 0.85rem;">
-<strong>Phase: Organisieren</strong><br>
-<ul style="margin-top: 0.5rem; padding-left: 1.2rem;">
-<li><strong>Bewertung:</strong> {bewertung}</li>
-<li><strong>Begründung:</strong> {begruendung}</li>
-<li><strong>Verbesserungsvorschlag:</strong> {verbessung}</li>
-</ul>
-</div>
-    """
+def update_document(phase:str, bewertung:str, begruendung:str, verbessung:str, methoden:str, ki_tools:str):
+    new_text = get_review_heading()
+    new_text += get_new_review_text(phase, bewertung, begruendung, verbessung, methoden, ki_tools)
     st.session_state.doc_text = new_text
-
 
 async def run_agent_with_streaming(user_input):
     async with chat_agent.run_stream(
         user_input,
-        deps=st.session_state.agent_deps,
-        message_history=st.session_state.org_chat_messages
+        deps=st.session_state.agent_deps
     ) as result:
         async for message in result.stream_text(delta=True):
             yield message
@@ -71,16 +59,7 @@ async def run_agent_with_streaming(user_input):
 # ─────────────────────────────────────────────────────────────
 # Init session state
 
-default_text = textwrap.dedent("""
-<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-<span style="font-size: 1.3rem; position: relative; top: -5px;">💡</span>
-<h4 style="margin: 0;">Hinweis:</h4>
-</div>
-<p>
-An dieser Stelle wird zukünftig ein zusammenfassendes Dokument zur Einschätzung und Potenzialanalyse für das Siegel <strong>„Nutzerzentriert Entwickelt“</strong> angezeigt.
-Es fasst zentrale Erkenntnisse der Analysephase, die durch die interaktive Konversation mit dem KI-Assistenten gewonnen wurden, zusammen und bietet einen Überblick über empfohlene nächste Schritte im weiteren Entwicklungsprozess.
-</p>
-    """)
+default_text = get_default_hint_text()
 
 if "agent_deps" not in st.session_state:
     with st.spinner("Initialisiere KI-Agent..."):
@@ -106,6 +85,9 @@ if "o_got_valid_response" not in st.session_state:
 
 if "have_ux_expert" not in st.session_state:
     st.session_state.have_ux_expert = False
+
+if "ux_experience" not in st.session_state:
+    st.session_state.ux_experience = ''
 
 if "doc_text" not in st.session_state:
     st.session_state.doc_text = default_text
@@ -153,14 +135,23 @@ st.markdown("""
 
 col1_chatbot, col2_chatbot = st.columns([1, 1])
 
-questions = ['Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?',
+questions = ['Wie würdest du den Reifegrad eurer Organisation im Bereich nutzerzentrierte Entwicklung einschätzen – von Einsteiger bis sehr erfahren?',
+             'Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?',
              'Gibt es ein UX-Experten in Ihrem Unternehmen?',
              'Können am Entwickungsprozess des digitalen Produktes / der Dienstleistung beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen?',
              'Wie ist die interne Kommunikation und Zusammenarbeit in Bezug auf "Usability und User Experience" im Entwicklungsprozess strukturiert?']
 
+response_options_UX_experience = ['Einsteiger – Erste Berührungspunkte, keine oder sehr geringe praktische Erfahrung',
+                                  'Grundkenntnisse – Einzelne UX-Methoden bekannt, punktuell angewendet',
+                                  'Fortgeschritten – Regelmäßige Anwendung nutzerzentrierter Methoden im Projektkontext',
+                                  'Erfahren – Systematische Integration in Prozesse, klare Zuständigkeiten',
+                                  'Sehr erfahren – Strategisch verankert, teamübergreifend gelebt, kontinuierliche Optimierung']
+response_options_expert = ['True', 'False']
+
 response_options = [
+    response_options_UX_experience,
     [option.text for option in organizing_question_1],
-    ['True', 'False'],
+    response_options_expert,
     [option.text for option in organizing_question_2],
     [option.text for option in organizing_question_3]
 ]
@@ -230,11 +221,14 @@ async def main():
                             st.session_state.o_got_valid_response = False
                     else:
                         st.session_state.o_got_valid_response = True
-                        if st.session_state.o_question_index != 1:
+                        if st.session_state.o_question_index != 0 and st.session_state.o_question_index != 2:
                             st.session_state.o_user_response.append(assigned_resp)
                         else:
                             if assigned_resp == 'True':
                                 st.session_state.have_ux_expert = True
+
+                            if st.session_state.o_question_index == 0:
+                                st.session_state.ux_experience = assigned_resp
 
 
                     if st.session_state.o_got_valid_response:
@@ -252,10 +246,20 @@ async def main():
 
                     repos = st.session_state.o_user_response
 
-                    print(st.session_state.o_user_response)
-                    print(st.session_state.have_ux_expert)
+                    if len(repos) + 2 == len(response_options):
+                        if not st.session_state.have_ux_expert:
+                            st.session_state.agent_deps.condition = "Es gibt keine UX-Experten im Unternehmen. Wähle nur Methoden aus die keinen benötigen."
 
-                    if len(repos) + 1 == len(response_options):
+                        methods = ""
+                        async for message in run_agent_with_streaming(
+                                user_input=f"Welche Methoden gibt es in der Phase Organisieren?"):
+                            methods += message
+                        ki_tools = ""
+                        async for message in run_agent_with_streaming(
+                                f"Welche KI_Tools kann man in der Phase Organsieren anwenden?"):
+                            ki_tools += message
+                        print(methods)
+                        print(ki_tools)
                         a1 = next(a for a in organizing_question_1 if a.text == repos[0])
                         a2 = next(a for a in organizing_question_2 if a.text == repos[1])
                         a3 = next(a for a in organizing_question_3 if a.text == repos[2])
@@ -263,13 +267,18 @@ async def main():
                             response = await evaluate_phase(
                                 nutzereingabe=st.session_state.o_user_inputs,
                                 antworten=BewertungEingabe(antwortoptionen=[a1, a2, a3]),
-                                phase=Phasen.ORGANIZING.value)
-                            print(response)
+                                phase=Phasen.ORGANIZING.value,
+                                ux_erfahrung=st.session_state.ux_experience,
+                                methoden=methods, ki_tools=ki_tools)
+
                             st.markdown(response.output.gesamtbewertungstext, unsafe_allow_html=True)
                             st.session_state.org_chat_messages.extend(
                                 [ModelResponse(parts=[TextPart(content=response.output.gesamtbewertungstext, part_kind='text')])])
                             st.session_state.o_user_response = []
-                            update_document(response.output.gesamtbewertung, response.output.gesamtbegruendung, response.output.gesamtverbesserungspotential)
+                            update_document(Phasen.ORGANIZING.value, response.output.gesamtbewertung,
+                                            response.output.gesamtbegruendung,
+                                            response.output.gesamtverbesserungspotential, response.output.methoden,
+                                            response.output.ki_tools)
 
 
 

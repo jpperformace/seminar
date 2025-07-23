@@ -127,10 +127,11 @@ def query_collection(
     return query
 
 
-def format_results_as_context(query_results: Dict[str, Any]) -> str:
+def format_results_as_context(query_results: Dict[str, Any], condition:Optional[str] = None) -> str:
     """Format query results as a context string for the agent.
     
     Args:
+        condition: Optinal condition of query
         query_results: Results from a ChromaDB query
         
     Returns:
@@ -153,5 +154,6 @@ def format_results_as_context(query_results: Dict[str, Any]) -> str:
         
         # Add document content
         context += f"Content: {doc}\n\n"
+        context += f"POST CONDITION: {condition}\n\n "
     
     return context

@@ -9,6 +9,7 @@ from agents.agent_loader import get_agent
 from agents.assign_response_agent import AssignResponseInput, assign_user_input
 from agents.quantitative_rating_agent import evaluate_phase, Phasen, BewertungEingabe
 from agents.rag_agent import chat_agent
+from ui.messages import get_new_review_text, get_default_hint_text
 from audit_ratings.response_options_understanding import understanding_question_1, understanding_question_2, \
     understanding_methods_analysis_question
 
@@ -41,17 +42,8 @@ def display_message_part(part):
         with st.chat_message("assistant"):
             st.markdown(part.content)
 
-def update_document(bewertung:str, begruendung:str, verbessung:str):
-    new_text = f"""
-<div style="font-size: 0.85rem;">
-<strong>Phase: Verstehen </strong><br>
-<ul style="margin-top: 0.5rem; padding-left: 1.2rem;">
-<li><strong>Bewertung:</strong> {bewertung}</li>
-<li><strong>Begründung:</strong> {begruendung}</li>
-<li><strong>Verbesserungsvorschlag:</strong> {verbessung}</li>
-</ul>
-</div>
-    """
+def update_document(phase:str, bewertung:str, begruendung:str, verbessung:str, methoden:str, ki_tools:str):
+    new_text = get_new_review_text(phase, bewertung, begruendung, verbessung, methoden, ki_tools)
     st.session_state.doc_text = st.session_state.doc_text + "\n" + new_text
 
 
@@ -68,16 +60,7 @@ async def run_agent_with_streaming(user_input):
 # ─────────────────────────────────────────────────────────────
 # Init session state
 
-default_text = textwrap.dedent("""
-<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-<span style="font-size: 1.3rem; position: relative; top: -5px;">💡</span>
-<h4 style="margin: 0;">Hinweis:</h4>
-</div>
-<p>
-An dieser Stelle wird zukünftig ein zusammenfassendes Dokument zur Einschätzung und Potenzialanalyse für das Siegel <strong>„Nutzerzentriert Entwickelt“</strong> angezeigt.
-Es fasst zentrale Erkenntnisse der Analysephase, die durch die interaktive Konversation mit dem KI-Assistenten gewonnen wurden, zusammen und bietet einen Überblick über empfohlene nächste Schritte im weiteren Entwicklungsprozess.
-</p>
-    """)
+default_text = get_default_hint_text()
 
 if "agent_deps" not in st.session_state:
     with st.spinner("Initialisiere KI-Agent..."):
@@ -252,18 +235,26 @@ async def main():
                             methods = ""
                             async for message in run_agent_with_streaming(f"Welche Methoden gibt es in der Phase Verstehen{methods_message}{expert_message}?"):
                                 methods += message
+
+                            ki_tools = ""
+                            async for message in run_agent_with_streaming(f"Welche KI_Tools kann man in der Phase Verstehen anwenden?"):
+                                ki_tools += message
                             print(methods)
+                            print(ki_tools)
                             response = await evaluate_phase(
                                 methoden=methods,
                                 nutzereingabe=st.session_state.u_user_inputs,
                                 antworten=BewertungEingabe(antwortoptionen=[a0, a1, a2]),
-                                phase=Phasen.ORGANIZING.value)
+                                phase=Phasen.UNDERSTANDING.value,
+                                ux_erfahrung=st.session_state.ux_experience,
+                                ki_tools=ki_tools)
                             print(response)
                             st.markdown(response.output.gesamtbewertungstext, unsafe_allow_html=True)
                             st.session_state.und_chat_messages.extend(
                                 [ModelResponse(parts=[TextPart(content=response.output.gesamtbewertungstext, part_kind='text')])])
                             st.session_state.user_response = []
-                            update_document(response.output.gesamtbewertung, response.output.gesamtbegruendung, response.output.gesamtverbesserungspotential)
+                            update_document(Phasen.UNDERSTANDING.value, response.output.gesamtbewertung, response.output.gesamtbegruendung,
+                                            response.output.gesamtverbesserungspotential, response.output.methoden, response.output.ki_tools)
 
 
 
