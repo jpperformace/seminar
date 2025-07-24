@@ -45,6 +45,7 @@ class RAGDeps:
     collection_name: str
     embedding_model: str
     condition: Optional[str] = None
+    explicit_search_query: Optional[str] = None
 
 
 # Create the RAG agent
@@ -60,13 +61,13 @@ chat_agent = Agent(
 )
 
 @chat_agent.tool
-async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: int = 10) -> str:
+async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: int = 15) -> str:
     """Retrieve relevant documents from ChromaDB based on a search query.
     
     Args:
         context: The run context containing dependencies.
         search_query: The search query to find relevant documents.
-        n_results: Number of results to return (default: 5).
+        n_results: Number of results to return (default: 15).
         
     Returns:
         Formatted context information from the retrieved documents.
@@ -85,6 +86,11 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
     print(search_query)
     print(context.deps.condition)
 
+    if context.deps.explicit_search_query:
+        search_query = context.deps.explicit_search_query
+
+    print(search_query)
+
     # Query the collection
     query_results = query_collection(
         collection,
@@ -92,7 +98,11 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
         n_results=n_results
     )
 
-    formatted_context = format_results_as_context(query_results, context.deps.condition)
+    formatted_context = format_results_as_context(query_results)
+    if context.deps.condition:
+        formatted_context += f"POST CONDITION: {context.deps.condition}\n\n "
+
+
 
     print(f"\n=== Retrieved Context ===\n")
     print(formatted_context)
@@ -112,7 +122,6 @@ async def run_rag_agent(
     collection_name: str = "docs",
     db_directory: str = "./chroma_db",
     embedding_model: str = "all-MiniLM-L6-v2",
-    n_results: int = 5
 ) -> str:
     """Run the RAG agent to answer a question about Pydantic AI.
     

@@ -48,8 +48,11 @@ quan_rat_agent = Agent(
         "Füge ganz am Ende hinzu, dass Rückfragen zur Beurteilung wie auch zu Methoden und KI-Tools der Phase gestellt werden können."
         "Die Felder 'gesamtbewertung', 'gesamtbegruendung' und 'gesamtverbesserungspotential' sollen die einzelnen Punkte verständlich," 
         "aber trotzdem kurz und prägnant zusammenfassen. "
+        "Im Feld 'gesamtverbesserungspotential' soll zunächst nur auf Zielebene beschrieben werden, welche allgemeinen Verbesserungsziele verfolgt werden sollten. "
+        "Es sollen dort keine konkreten Methoden oder KI-Tools genannt werden."
+        "und anschließen in Unterpunkten konkrete Methoden und KI-Tools vorgeschlagen werden."
         "In den Feldern 'Methoden' und 'KI-Tools' soll ergänzend auf Zielebene aufgezeigt werden, welche weiteren Maßnahmen sinnvoll wären."
-        "Der Fokus liegt dabei auf konstruktiven, zielgerichteten Vorschlägen."
+        "Der Fokus liegt dabei auf konstruktiven, zielgerichteten Vorschlägen. Gib explizit die Namen der empfohlen Methoden und KI-Tools an."
         "Gib nur zusammenhängende Texte keine Aufzählungen innerhalb der Felder zurück."
     )
 )
@@ -58,13 +61,15 @@ async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, p
     prompt = (
         f"Bewerte die Phase '{phase}' im Audit zur nutzerzentrierten Entwicklung anhand folgender "
         "vordefinierter Bewertungsschema für die gegebenen Antworten:\n\n"
-        f"Entsprchend der UX Erfahrug: {ux_erfahrung}, soll die Fokus der Erklärung angepasst werden und die Begründung einen unterschiedlichen Detailgrad haben"
+        f"Je nach UX-Erfahrung des Unternehmens ({ux_erfahrung}) soll der Fokus der Erklärung sowie der Detailgrad der Begründung angepasst werden. Dabei orientiert sich die Gestaltung der Erklärung an den Konzepten von Ye et al.\n\n"
         "- Bei **wenig Erfahrung**:\n"
-        "  - Erkläre verwendete Fachbegriffe (Terminologie) verständlich.\n"
-        "  - Lege besonderen Wert auf eine nachvollziehbare und gut begründete Bewertung (Justification).\n\n"
+        "  - **Terminology**: Fachbegriffe (z.B. Methoden) sollen verständlich erklärt werden.\n"
+        "  - **Justification**: Die Begründung soll ausführlich darlegen, *warum* eine bestimmte Bewertung vergeben wurde.\n"
+        "  - **Traceability** ist in dieser Gruppe weniger vorrangig.\n\n"
         "- Bei **erfahreneren Unternehmen**:\n"
-        "  - Achte besonders auf die Nachvollziehbarkeit der Argumentation (Trace).\n"
-        "  - Die Begründung soll klar, prägnant und fachlich fundiert sein.\n\n"
+        "  - **Terminology**: Kann reduziert werden – Fachbegriffe müssen nicht mehr ausführlich erläutert werden.\n"
+        "  - **Justification**: Die Begründung soll weiterhin klar erkennbar machen, *warum* eine Bewertung erfolgt ist – jedoch kurz, prägnant und fachlich fundiert.\n"
+        "  - **Traceability**: Es soll transparent sein, *welche* Kriterien oder Beobachtungen zum Ergebnis geführt haben.\n"
     )
     for i, antwort in enumerate(antworten.antwortoptionen, 0):
         print(nutzereingabe[i])
@@ -74,7 +79,7 @@ async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, p
             f"Eingabe: {nutzereingabe[i]}\n"
             f"Hinweis: {antwort.hinweis}\n"
             f"Methoden: {methoden}\n"
-            f"KI-Tools: {methoden}\n"
+            f"KI-Tools: {ki_tools}\n"
             f"Punkte: {antwort.punkte}\n"
             f"Bewertung: {antwort.bewertung}\n"
             f"Begründung: {antwort.begruendung}\n"
@@ -85,7 +90,7 @@ async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, p
         "die kompakt, erklärend und selektiv formuliert ist. Die Bewertung soll auf den Einzelbewertungen beruhen "
         "und klar aufzeigen, an welchen Stellen noch Schwächen bestehen.\n\n"
         "- Berücksichtige die gegebenen Hinweise, sofern vorhanden.\n"
-        "- Integriere die vorgeschlagenen Methoden und KI-Tools in den Verbesserungsvorschlag.\n"
+        " -Gib keine weiteren Methoden oder KI-Tools an, außer die im Promt enthaltenen an.\n"
         "- Formatiere die Antwort in **Markdown**.\n"
         "- Fasse alle Informationen in einer zusammenhängenden Einschätzung zusammen, ohne die einzelnen Antworten explizit aufzuführen.\n"
         "- Verwende als Überschrift:\n\n"

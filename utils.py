@@ -127,7 +127,7 @@ def query_collection(
     return query
 
 
-def format_results_as_context(query_results: Dict[str, Any], condition:Optional[str] = None) -> str:
+def format_results_as_context(query_results: Dict[str, Any]) -> str:
     """Format query results as a context string for the agent.
     
     Args:
@@ -154,6 +154,5 @@ def format_results_as_context(query_results: Dict[str, Any], condition:Optional[
         
         # Add document content
         context += f"Content: {doc}\n\n"
-        context += f"POST CONDITION: {condition}\n\n "
     
     return context

@@ -9,7 +9,9 @@ from agents.agent_loader import get_agent
 from agents.assign_response_agent import AssignResponseInput, assign_user_input
 from agents.quantitative_rating_agent import evaluate_phase, Phasen, BewertungEingabe
 from agents.rag_agent import chat_agent
-from ui.messages import get_new_review_text, get_default_hint_text
+from ui.css import get_menu_css, get_header_css, get_review_container_css
+from ui.html import get_new_review_text, get_default_hint_text, get_padding_html, get_header_html, \
+    get_tertiary_button_html, get_menu_heading_html, get_review_html
 from audit_ratings.response_options_understanding import understanding_question_1, understanding_question_2, \
     understanding_methods_analysis_question
 
@@ -90,42 +92,12 @@ if "doc_text" not in st.session_state:
 # ─────────────────────────────────────────────────────────────
 
 with st.container():
-    st.markdown("""
-    <div style="
-        position: relative;
-        width: 80%;
-    ">
-        <div id="sticky-header" style="
-            position: sticky;
-            top: 1cm;
-            background-color: white;
-            padding: 0.1rem;
-            margin-bottom: 0.1rem;
-            border-bottom: 1px solid #ccc;
-            z-index: 1000;
-        ">
-            <h2 style="margin: 0;">KI-Assistent für Siegel „Nutzerzentriert Entwickelt“</h2>
-            <p style="margin: 0;">
-                <strong>Hinweis:</strong> Bitte beantworten Sie die Fragen des KI-gestützten Assistenten so ausführlich wie möglich. 
-                Sollten Unsicherheiten bestehen, geben Sie diese bitte an – der Assistent kann dadurch gezielter Rückfragen stellen 
-                oder weiterführende Informationen bereitstellen.
-            </p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(get_header_html(), unsafe_allow_html=True)
 
-    css = float_css_helper(
-        width="100%",
-        top="1cm",
-        transition=0,
-        margin="0rem",
-        additional_css="background-color: white !important; z-index: 1000;"
-    )
+    css = get_header_css()
     float_parent(css=css)
 
-st.markdown("""
-<div style="height: 20px; background-color: white;"></div>
-""", unsafe_allow_html=True)
+st.markdown(get_padding_html(), unsafe_allow_html=True)
 
 
 col1_chatbot, col2_chatbot = st.columns([1, 1])
@@ -264,33 +236,16 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
+
 with st.container():
-    right_float_css = float_css_helper(
-        width="38%",
-        top="10rem",
-        right="2rem",
-        transition=0,
-        height="25%",
-        additional_css="""
-            background-color: #f9f9f9;
-            border-radius: 0.5rem;
-            padding-left: 1rem;
-            padding-right: 1rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            z-index: 999;
-        """
-    )
+    st.markdown(get_review_html(st.session_state.doc_text), unsafe_allow_html=True)
+
+
+with st.container():
+    right_float_css = get_menu_css()
 
     st.markdown(
-        """
-    <style>
-    button[kind="tertiary"] {
-        height: auto;
-        padding-top: 10px !important;
-        padding-bottom: 10px !important;
-    }
-    </style>
-    """,
+        get_tertiary_button_html(),
         unsafe_allow_html=True,
     )
 
@@ -299,11 +254,7 @@ with st.container():
 
         sub_col1, sub_col2 = st.columns([5, 1])
         with sub_col1:
-            st.markdown("""
-                   <div style='font-size: 0.85rem'>
-                       <h4 style="margin: 0;">Phase: Verstehen</h4>
-                   </div>
-               """, unsafe_allow_html=True)
+            st.markdown(get_menu_heading_html(Phasen.UNDERSTANDING.value), unsafe_allow_html=True)
         with sub_col2:
 
             st.button("ℹ️",
@@ -314,8 +265,6 @@ with st.container():
                       """,
                       type="tertiary")
 
-
-
         if st.button("Wechsle in nächste Phase", use_container_width=True):
             st.switch_page("pages/simulation-understanding.py")
 
@@ -323,27 +272,3 @@ with st.container():
         st.image("pictures/ucd_process_understanding.png", use_container_width=True)
 
     float_parent(css=right_float_css)
-
-with st.container():
-    right_float_css = textwrap.dedent("""
-        position: fixed;
-        width: 38%;
-        top: 50%;
-        right: 2rem;
-        background-color: #f9f9f9;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        z-index: 999;
-        height: 40%;
-        overflow-y: auto;
-    """).replace("\n", " ")
-
-    text = f"""
-<div style="{right_float_css}">
-<div style="font-size: 0.85rem; line-height: 1.5; color: #333;">
-{st.session_state.doc_text}
-</div>
-</div>
-    """
-    st.markdown(text, unsafe_allow_html=True)

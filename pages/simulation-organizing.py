@@ -10,7 +10,9 @@ from agents.agent_loader import get_agent
 from agents.assign_response_agent import AssignResponseInput, assign_user_input
 from agents.quantitative_rating_agent import evaluate_phase, Phasen, BewertungEingabe
 from agents.rag_agent import chat_agent
-from ui.messages import get_new_review_text, get_default_hint_text, get_review_heading
+from ui.css import get_header_css, get_menu_css, get_review_container_css
+from ui.html import get_new_review_text, get_default_hint_text, get_review_heading, get_header_html, \
+    get_padding_html, get_tertiary_button_html, get_menu_heading_html, get_review_html
 from audit_ratings.response_options_organizing import organizing_question_1, organizing_question_3, organizing_question_2
 
 load_dotenv()
@@ -47,10 +49,14 @@ def update_document(phase:str, bewertung:str, begruendung:str, verbessung:str, m
     new_text += get_new_review_text(phase, bewertung, begruendung, verbessung, methoden, ki_tools)
     st.session_state.doc_text = new_text
 
-async def run_agent_with_streaming(user_input):
+async def run_agent_with_streaming(user_input, use_history=True):
+    print("User input:", user_input)
+    print("Use history:", use_history)
+
     async with chat_agent.run_stream(
         user_input,
-        deps=st.session_state.agent_deps
+        deps=st.session_state.agent_deps,
+        message_history=st.session_state.org_chat_messages if use_history else None
     ) as result:
         async for message in result.stream_text(delta=True):
             yield message
@@ -92,45 +98,18 @@ if "ux_experience" not in st.session_state:
 if "doc_text" not in st.session_state:
     st.session_state.doc_text = default_text
 
+if "o_evaluation_finished" not in st.session_state:
+    st.session_state.o_evaluation_finished = False
+
 # ─────────────────────────────────────────────────────────────
 
 with st.container():
-    st.markdown("""
-    <div style="
-        position: relative;
-        width: 80%;
-    ">
-        <div id="sticky-header" style="
-            position: sticky;
-            top: 1cm;
-            background-color: white;
-            padding: 0.1rem;
-            margin-bottom: 0.1rem;
-            border-bottom: 1px solid #ccc;
-            z-index: 1000;
-        ">
-            <h2 style="margin: 0;">KI-Assistent für Siegel „Nutzerzentriert Entwickelt“</h2>
-            <p style="margin: 0;">
-                Hinweis: Bitte beantworten Sie die Fragen des KI-gestützten Assistenten so ausführlich wie möglich. 
-                Sollten Unsicherheiten bestehen, geben Sie diese bitte an – der Assistent kann dadurch gezielter Rückfragen stellen 
-                oder weiterführende Informationen bereitstellen.
-            </p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(get_header_html(), unsafe_allow_html=True)
 
-    css = float_css_helper(
-        width="100%",
-        top="1cm",
-        transition=0,
-        margin="0rem",
-        additional_css="background-color: white !important; z-index: 1000;"
-    )
+    css = get_header_css()
     float_parent(css=css)
 
-st.markdown("""
-<div style="height: 20px; background-color: white;"></div>
-""", unsafe_allow_html=True)
+st.markdown(get_padding_html(), unsafe_allow_html=True)
 
 
 col1_chatbot, col2_chatbot = st.columns([1, 1])
@@ -249,15 +228,21 @@ async def main():
                     if len(repos) + 2 == len(response_options):
                         if not st.session_state.have_ux_expert:
                             st.session_state.agent_deps.condition = "Es gibt keine UX-Experten im Unternehmen. Wähle nur Methoden aus die keinen benötigen."
-
+                        st.session_state.agent_deps.explicit_search_query = "Methoden in der Phase Organisieren"
                         methods = ""
                         async for message in run_agent_with_streaming(
-                                user_input=f"Welche Methoden gibt es in der Phase Organisieren?"):
+                                user_input=f"Welche Methoden gibt es in der Phase Organisieren?", use_history=False):
                             methods += message
+                        st.session_state.agent_deps.condition = "Gib nur KI-Tools zurück. Dabei soll der Name des KI-Tools enthalten sein."
+                        st.session_state.agent_deps.explicit_search_query = "KI Tools Phase Organisieren"
                         ki_tools = ""
                         async for message in run_agent_with_streaming(
-                                f"Welche KI_Tools kann man in der Phase Organsieren anwenden?"):
+                                f"Gib mir KI_Tools mit Kurzbeschreibung zurück, die man in der Phase Organsieren anwenden kann?",
+                                use_history=False):
                             ki_tools += message
+
+                        st.session_state.agent_deps.condition = None
+                        st.session_state.agent_deps.explicit_search_query = None
                         print(methods)
                         print(ki_tools)
                         a1 = next(a for a in organizing_question_1 if a.text == repos[0])
@@ -279,6 +264,7 @@ async def main():
                                             response.output.gesamtbegruendung,
                                             response.output.gesamtverbesserungspotential, response.output.methoden,
                                             response.output.ki_tools)
+                            st.session_state.o_evaluation_finished = True
 
 
 
@@ -288,33 +274,16 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
+
 with st.container():
-    right_float_css = float_css_helper(
-        width="38%",
-        top="12rem",
-        right="2rem",
-        transition=0,
-        height="25%",
-        additional_css="""
-            background-color: #f9f9f9;
-            border-radius: 0.5rem;
-            padding-left: 1rem;
-            padding-right: 1rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            z-index: 999;
-        """
-    )
+    st.markdown(get_review_html(st.session_state.doc_text), unsafe_allow_html=True)
+
+
+with st.container():
+    right_float_css = get_menu_css()
 
     st.markdown(
-        """
-    <style>
-    button[kind="tertiary"] {
-        height: auto;
-        padding-top: 10px !important;
-        padding-bottom: 10px !important;
-    }
-    </style>
-    """,
+        get_tertiary_button_html(),
         unsafe_allow_html=True,
     )
 
@@ -323,11 +292,7 @@ with st.container():
 
         sub_col1, sub_col2 = st.columns([5, 1])
         with sub_col1:
-            st.markdown("""
-                   <div style='font-size: 0.85rem'>
-                       <h4 style="margin: 0;">Phase: Organisieren</h4>
-                   </div>
-               """, unsafe_allow_html=True)
+            st.markdown(get_menu_heading_html(Phasen.ORGANIZING.value), unsafe_allow_html=True)
         with sub_col2:
 
             st.button("ℹ️",
@@ -336,36 +301,10 @@ with st.container():
                       Verankerung einer nutzerzentrierten Denkweise und das Vorhandensein von UX-Experten.""",
                       type="tertiary")
 
-
-
-        if st.button("Wechsle in nächste Phase", use_container_width=True):
+        if st.button("Wechsle in nächste Phase", use_container_width=True, disabled=not st.session_state.get("o_evaluation_finished", False)):
             st.switch_page("pages/simulation-understanding.py")
 
     with col2_info:
         st.image("pictures/ucd_process_organizing.png", use_container_width=True)
 
     float_parent(css=right_float_css)
-
-with st.container():
-    right_float_css = textwrap.dedent("""
-        position: fixed;
-        width: 38%;
-        top: 53%;
-        right: 2rem;
-        background-color: #f9f9f9;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        z-index: 999;
-        height: 40%;
-        overflow-y: auto;
-    """).replace("\n", " ")
-
-    text = f"""
-<div style="{right_float_css}">
-<div style="font-size: 0.85rem; line-height: 1.5; color: #333;">
-{st.session_state.doc_text}
-</div>
-</div>
-    """
-    st.markdown(text, unsafe_allow_html=True)
