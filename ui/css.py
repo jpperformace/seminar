@@ -43,3 +43,20 @@ def get_review_container_css():
         height: 40%;
         overflow-y: auto;
     """).replace("\n", " ")
+
+def get_download_button_css():
+    return float_css_helper(
+        width="38%",
+        top="90%",
+        right="2rem",
+        transition=0,
+        height="25%",
+        additional_css="""
+                background-color: #f9f9f9;
+                border-radius: 0.5rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                z-index: 999;
+            """
+    )

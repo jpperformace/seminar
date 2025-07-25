@@ -255,3 +255,13 @@ with st.container():
         st.image("pictures/ucd_process_understanding.png", use_container_width=True)
 
     float_parent(css=right_float_css)
+
+with st.container():
+    st.download_button(
+        label="Download als HTML",
+        data=st.session_state.doc_text,
+        file_name="review.html",
+        mime="text/html"
+    )
+    button_css = float_css_helper(width="37%", bottom="0.3rem", left="90%", transition=0)
+    float_parent(css=button_css)

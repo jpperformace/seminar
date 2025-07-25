@@ -13,7 +13,7 @@ from agents.rag_agent import chat_agent
 from audit_process.general import response_options_UX_experience, response_options_expert, get_method_condition, \
     get_method_search_string, get_method_user_input, Phasen, get_ai_tool_condition, get_ai_tool_search_query, \
     get_ai_tool_user_input, get_no_expert_condition
-from ui.css import get_header_css, get_menu_css, get_review_container_css
+from ui.css import get_header_css, get_menu_css, get_review_container_css, get_download_button_css
 from ui.html import get_new_review_text, get_default_hint_text, get_review_heading, get_header_html, \
     get_padding_html, get_tertiary_button_html, get_menu_heading_html, get_review_html, get_sidebar_html
 from audit_process.organizing import organizing_response_q1, organizing_response_q3, \
@@ -255,7 +255,6 @@ if __name__ == "__main__":
 with st.container():
     st.markdown(get_review_html(st.session_state.doc_text), unsafe_allow_html=True)
 
-
 with st.container():
     right_float_css = get_menu_css()
 
@@ -280,3 +279,13 @@ with st.container():
         st.image("pictures/ucd_process_organizing.png", use_container_width=True)
 
     float_parent(css=right_float_css)
+
+with st.container():
+    st.download_button(
+        label="Download als HTML",
+        data=st.session_state.doc_text,
+        file_name="review.html",
+        mime="text/html"
+    )
+    button_css = float_css_helper(width="37%", bottom="0.3rem", left="90%", transition=0)
+    float_parent(css=button_css)
