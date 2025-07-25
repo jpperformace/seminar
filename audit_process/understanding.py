@@ -1,6 +1,15 @@
-from agents.quantitative_rating_agent import Antwortoption
+from agents.rating_agent import Antwortoption
 
-understanding_question_1 = [
+understanding_summary = """Die Phase Verstehen beinhaltet die systematische Untersuchung von Nutzungskontext, Nutzerverhalten 
+                      und Zielen. Ziel ist es, fundierte Erkenntnisse über die Bedürfnisse der Nutzer zu gewinnen, um daraus 
+                      Anforderungen und Gestaltungsansätze abzuleiten."""
+
+understanding_questions = ['Wie oft führen Sie Nutzerforschung durch, um Ihre Zielgruppe und deren Bedürfnisse zu verstehen?',
+             'Welche Methoden zur Analyse der Nutzenden wenden Sie an?',
+             'Wie werden die Ergebnisse der Anwenderanalyse verwendet?']
+
+
+understanding_response_q1 = [
     Antwortoption(
         text='Immer',
         punkte=4,
@@ -60,47 +69,7 @@ understanding_question_1 = [
     )
 ]
 
-
-understanding_question_2 = [
-    Antwortoption(
-        text='Zur direkten Beeinflussung von Design und Entwicklung',
-        punkte=2,
-        bewertung="Sehr gut",
-        begruendung=(
-            "Die systematische Nutzung von Ergebnissen aus der Anwenderanalyse zur Steuerung von Design und Entwicklung "
-            "zeigt eine hohe Reife im Umgang mit Nutzerfeedback."
-        ),
-        verbesserungpotential=(
-            "Sichern Sie ab, dass diese Praxis über alle Projekte hinweg konsequent angewendet wird."
-        )
-    ),
-    Antwortoption(
-        text='Als allgemeine Orientierung',
-        punkte=1,
-        bewertung="Ausreichend – mit Schwächen",
-        begruendung=(
-            "Die Nutzung der Ergebnisse ist vorhanden, aber nicht zielgerichtet genug, um konkrete Auswirkungen "
-            "auf Designentscheidungen sicherzustellen."
-        ),
-        verbesserungpotential=(
-            "Fördern Sie die konkrete Umsetzung von Erkenntnissen in Gestaltungsentscheidungen und Entwicklungsprozesse."
-        )
-    ),
-    Antwortoption(
-        text='Werden nicht systematisch verwendet',
-        punkte=0,
-        bewertung="Ungenügend – nicht zertifizierungsfähig",
-        begruendung=(
-            "Fehlende systematische Nutzung von Anwenderanalysen bedeutet, dass wertvolle Erkenntnisse ungenutzt bleiben "
-            "und Entscheidungen nicht ausreichend nutzerbasiert getroffen werden."
-        ),
-        verbesserungpotential=(
-            "Entwickeln Sie Prozesse, um Nutzeranalysen auszuwerten und deren Ergebnisse gezielt in Design und Entwicklung zu integrieren."
-        )
-    )
-]
-
-understanding_methods_analysis_question = [
+understanding_response_q2 = [
     Antwortoption(
         text='5–6 Methoden aus den Methoden Nutzerinterviews, User Journeys, Personas, Generierung von Szenarien, Nutzungskontextanalyse, Fokusgruppen oder weitere Methoden wurden genannt.',
         hinweis='Die Methoden Nutzerinterviews, User Journeys, Personas, Generierung von Szenarien, Nutzungskontextanalyse, Fokusgruppen sind von besonderer Bedeutung.',
@@ -167,4 +136,62 @@ understanding_methods_analysis_question = [
             "um ein erstes Bild der Zielgruppe zu gewinnen."
         )
     )
+]
+
+understanding_response_q3 = [
+    Antwortoption(
+        text='Zur direkten Beeinflussung von Design und Entwicklung',
+        punkte=2,
+        bewertung="Sehr gut",
+        begruendung=(
+            "Die systematische Nutzung von Ergebnissen aus der Anwenderanalyse zur Steuerung von Design und Entwicklung "
+            "zeigt eine hohe Reife im Umgang mit Nutzerfeedback."
+        ),
+        verbesserungpotential=(
+            "Sichern Sie ab, dass diese Praxis über alle Projekte hinweg konsequent angewendet wird."
+        )
+    ),
+    Antwortoption(
+        text='Als allgemeine Orientierung',
+        punkte=1,
+        bewertung="Ausreichend – mit Schwächen",
+        begruendung=(
+            "Die Nutzung der Ergebnisse ist vorhanden, aber nicht zielgerichtet genug, um konkrete Auswirkungen "
+            "auf Designentscheidungen sicherzustellen."
+        ),
+        verbesserungpotential=(
+            "Fördern Sie die konkrete Umsetzung von Erkenntnissen in Gestaltungsentscheidungen und Entwicklungsprozesse."
+        )
+    ),
+    Antwortoption(
+        text='Werden nicht systematisch verwendet',
+        punkte=0,
+        bewertung="Ungenügend – nicht zertifizierungsfähig",
+        begruendung=(
+            "Fehlende systematische Nutzung von Anwenderanalysen bedeutet, dass wertvolle Erkenntnisse ungenutzt bleiben "
+            "und Entscheidungen nicht ausreichend nutzerbasiert getroffen werden."
+        ),
+        verbesserungpotential=(
+            "Entwickeln Sie Prozesse, um Nutzeranalysen auszuwerten und deren Ergebnisse gezielt in Design und Entwicklung zu integrieren."
+        )
+    )
+]
+
+
+all_response_list = [
+    understanding_response_q1,
+    understanding_response_q2,
+    understanding_response_q3
+]
+
+understanding_rating_metrik = [
+    {"bewertung": option.bewertung, "inhalt": option.text}
+    for response in all_response_list
+    for option in response
+]
+
+
+understanding_response_text_options = [
+    option.text for response in all_response_list
+    for option in response
 ]

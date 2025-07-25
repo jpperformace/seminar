@@ -80,16 +80,8 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
         embedding_model_name=context.deps.embedding_model
     )
 
-    print("Retrieving documents...")
-    print(n_results)
-    print(collection)
-    print(search_query)
-    print(context.deps.condition)
-
     if context.deps.explicit_search_query:
         search_query = context.deps.explicit_search_query
-
-    print(search_query)
 
     # Query the collection
     query_results = query_collection(
@@ -101,12 +93,6 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
     formatted_context = format_results_as_context(query_results)
     if context.deps.condition:
         formatted_context += f"POST CONDITION: {context.deps.condition}\n\n "
-
-
-
-    print(f"\n=== Retrieved Context ===\n")
-    print(formatted_context)
-    print("\n=========================\n")
 
     return formatted_context
 
@@ -141,8 +127,6 @@ async def run_rag_agent(
         collection_name=collection_name,
         embedding_model=embedding_model
     )
-    print("Running RAG agent...")
-    print(question)
     # Run the agent
     result = await chat_agent.run(question, deps=deps)
     

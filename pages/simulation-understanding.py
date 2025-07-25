@@ -7,13 +7,15 @@ import asyncio
 
 from agents.agent_loader import get_agent
 from agents.assign_response_agent import AssignResponseInput, assign_user_input
-from agents.quantitative_rating_agent import evaluate_phase, Phasen, BewertungEingabe
+from agents.rating_agent import evaluate_phase, BewertungEingabe
 from agents.rag_agent import chat_agent
+from audit_process.general import Phasen, get_method_condition, get_method_search_string, get_method_user_input, \
+    get_ai_tool_condition, get_ai_tool_search_query, get_ai_tool_user_input, get_no_expert_condition
 from ui.css import get_menu_css, get_header_css, get_review_container_css
 from ui.html import get_new_review_text, get_default_hint_text, get_padding_html, get_header_html, \
-    get_tertiary_button_html, get_menu_heading_html, get_review_html
-from audit_ratings.response_options_understanding import understanding_question_1, understanding_question_2, \
-    understanding_methods_analysis_question
+    get_tertiary_button_html, get_menu_heading_html, get_review_html, get_sidebar_html
+from audit_process.understanding import understanding_response_q1, understanding_response_q3, understanding_response_q2, \
+    understanding_questions, understanding_summary, understanding_response_text_options, understanding_rating_metrik
 
 load_dotenv()
 
@@ -21,19 +23,9 @@ st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
 st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation')
 
-st.markdown(
-    """
-   <style>
-   [data-testid="stSidebar"][aria-expanded="true"]{
-       min-width: 15%;
-       max-width: 15%;
-   }
-   """,
-    unsafe_allow_html=True,
-)
+st.markdown(get_sidebar_html(), unsafe_allow_html=True)
 
 float_init(theme=True, include_unstable_primary=False)
-
 
 # ─────────────────────────────────────────────────────────────
 def display_message_part(part):
@@ -48,16 +40,18 @@ def update_document(phase:str, bewertung:str, begruendung:str, verbessung:str, m
     new_text = get_new_review_text(phase, bewertung, begruendung, verbessung, methoden, ki_tools)
     st.session_state.doc_text = st.session_state.doc_text + "\n" + new_text
 
+async def run_agent_with_streaming(user_input, use_history=True):
+    print("User input:", user_input)
+    print("Use history:", use_history)
 
-async def run_agent_with_streaming(user_input):
     async with chat_agent.run_stream(
         user_input,
         deps=st.session_state.agent_deps,
-        message_history=st.session_state.und_chat_messages
+        message_history=st.session_state.org_chat_messages if use_history else None
     ) as result:
         async for message in result.stream_text(delta=True):
             yield message
-    st.session_state.und_chat_messages.extend(result.new_messages())
+    st.session_state.org_chat_messages.extend(result.new_messages())
 
 # ─────────────────────────────────────────────────────────────
 # Init session state
@@ -102,18 +96,9 @@ st.markdown(get_padding_html(), unsafe_allow_html=True)
 
 col1_chatbot, col2_chatbot = st.columns([1, 1])
 
-questions = ['Wie oft führen Sie Nutzerforschung durch, um Ihre Zielgruppe und deren Bedürfnisse zu verstehen?',
-             'Welche Methoden zur Analyse der Nutzenden wenden Sie an?',
-             'Wie werden die Ergebnisse der Anwenderanalyse verwendet?']
+questions = understanding_questions
 
-response_options = [
-    [option.text for option in understanding_question_1],
-    [option.text for option in understanding_methods_analysis_question],
-    [option.text for option in understanding_question_2]
-]
-
-
-
+response_options = understanding_response_text_options
 
 async def main():
 
@@ -194,41 +179,45 @@ async def main():
                     print(st.session_state.have_ux_expert)
 
                     if len(repos) == len(response_options):
-                        print(st.session_state.u_user_inputs)
-                        a0 = next(a for a in understanding_question_1 if a.text == repos[0])
-                        a1 = next(a for a in understanding_methods_analysis_question if a.text == repos[1])
-                        a2 = next(a for a in understanding_question_2 if a.text == repos[2])
+                        a0 = next(a for a in understanding_response_q1 if a.text == repos[0])
+                        a1 = next(a for a in understanding_response_q2 if a.text == repos[1])
+                        a2 = next(a for a in understanding_response_q3 if a.text == repos[2])
+
+                        st.session_state.agent_deps.condition = get_method_condition(a1)
+                        if not st.session_state.have_ux_expert:
+                            st.session_state.agent_deps.condition += get_no_expert_condition()
+                        st.session_state.agent_deps.explicit_search_query = get_method_search_string(Phasen.UNDERSTANDING.value)
+                        methods = ""
+                        async for message in run_agent_with_streaming(user_input=get_method_user_input(Phasen.UNDERSTANDING.value), use_history=False):
+                            methods += message
+
+                        st.session_state.agent_deps.condition = get_ai_tool_condition()
+                        st.session_state.agent_deps.explicit_search_query = get_ai_tool_search_query(Phasen.UNDERSTANDING.value)
+                        ai_tools = ""
+                        async for message in run_agent_with_streaming(get_ai_tool_user_input(Phasen.UNDERSTANDING.value), use_history=False):
+                            ai_tools += message
+
+                        st.session_state.agent_deps.condition = None
+                        st.session_state.agent_deps.explicit_search_query = None
 
                         with st.chat_message("assistant"):
-                            methods_message = f", die nicht in der Nachricht  \"{st.session_state.u_user_inputs[1]}\" enthalten sind"
-                            expert_message = ""
-                            if not st.session_state.have_ux_expert:
-                                expert_message =' und keinen UX-Experten benötigen'
-                            methods = ""
-                            async for message in run_agent_with_streaming(f"Welche Methoden gibt es in der Phase Verstehen{methods_message}{expert_message}?"):
-                                methods += message
 
-                            ki_tools = ""
-                            async for message in run_agent_with_streaming(f"Welche KI_Tools kann man in der Phase Verstehen anwenden?"):
-                                ki_tools += message
-                            print(methods)
-                            print(ki_tools)
                             response = await evaluate_phase(
                                 methoden=methods,
                                 nutzereingabe=st.session_state.u_user_inputs,
                                 antworten=BewertungEingabe(antwortoptionen=[a0, a1, a2]),
                                 phase=Phasen.UNDERSTANDING.value,
                                 ux_erfahrung=st.session_state.ux_experience,
-                                ki_tools=ki_tools)
-                            print(response)
+                                ki_tools=ai_tools, evaluation_metrik=understanding_rating_metrik)
+
+                            print("RESPONSE")
+                            print(response.output)
                             st.markdown(response.output.gesamtbewertungstext, unsafe_allow_html=True)
                             st.session_state.und_chat_messages.extend(
                                 [ModelResponse(parts=[TextPart(content=response.output.gesamtbewertungstext, part_kind='text')])])
                             st.session_state.user_response = []
                             update_document(Phasen.UNDERSTANDING.value, response.output.gesamtbewertung, response.output.gesamtbegruendung,
                                             response.output.gesamtverbesserungspotential, response.output.methoden, response.output.ki_tools)
-
-
 
                 print(st.session_state.question_index)
 
@@ -257,13 +246,7 @@ with st.container():
             st.markdown(get_menu_heading_html(Phasen.UNDERSTANDING.value), unsafe_allow_html=True)
         with sub_col2:
 
-            st.button("ℹ️",
-                      help="""
-                      Die Phase Verstehen beinhaltet die systematische Untersuchung von Nutzungskontext, Nutzerverhalten 
-                      und Zielen. Ziel ist es, fundierte Erkenntnisse über die Bedürfnisse der Nutzer zu gewinnen, um daraus 
-                      Anforderungen und Gestaltungsansätze abzuleiten.
-                      """,
-                      type="tertiary")
+            st.button("ℹ️", help=understanding_summary, type="tertiary")
 
         if st.button("Wechsle in nächste Phase", use_container_width=True):
             st.switch_page("pages/simulation-understanding.py")

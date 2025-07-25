@@ -11,10 +11,11 @@ def get_header_css():
         margin="0rem",
         additional_css="background-color: white !important; z-index: 1000;"
     )
+
 def get_menu_css():
     return float_css_helper(
         width="38%",
-        top="30%",
+        top="12rem",
         right="2rem",
         transition=0,
         height="25%",
@@ -32,7 +33,7 @@ def get_review_container_css():
     return textwrap.dedent("""
         position: fixed;
         width: 38%;
-        top: 58%;
+        top: 53%;
         right: 2rem;
         background-color: #f9f9f9;
         padding: 1rem;

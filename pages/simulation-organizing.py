@@ -8,12 +8,17 @@ import asyncio
 
 from agents.agent_loader import get_agent
 from agents.assign_response_agent import AssignResponseInput, assign_user_input
-from agents.quantitative_rating_agent import evaluate_phase, Phasen, BewertungEingabe
+from agents.rating_agent import evaluate_phase, BewertungEingabe
 from agents.rag_agent import chat_agent
+from audit_process.general import response_options_UX_experience, response_options_expert, get_method_condition, \
+    get_method_search_string, get_method_user_input, Phasen, get_ai_tool_condition, get_ai_tool_search_query, \
+    get_ai_tool_user_input, get_no_expert_condition
 from ui.css import get_header_css, get_menu_css, get_review_container_css
 from ui.html import get_new_review_text, get_default_hint_text, get_review_heading, get_header_html, \
-    get_padding_html, get_tertiary_button_html, get_menu_heading_html, get_review_html
-from audit_ratings.response_options_organizing import organizing_question_1, organizing_question_3, organizing_question_2
+    get_padding_html, get_tertiary_button_html, get_menu_heading_html, get_review_html, get_sidebar_html
+from audit_process.organizing import organizing_response_q1, organizing_response_q3, \
+    organizing_response_q2, organizing_questions, organizing_summary, organzing_response_text_options, \
+    organzing_rating_metrik
 
 load_dotenv()
 
@@ -21,19 +26,9 @@ st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
 st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation')
 
-st.markdown(
-    """
-   <style>
-   [data-testid="stSidebar"][aria-expanded="true"]{
-       min-width: 15%;
-       max-width: 15%;
-   }
-   """,
-    unsafe_allow_html=True,
-)
+st.markdown(get_sidebar_html(), unsafe_allow_html=True)
 
 float_init(theme=True, include_unstable_primary=False)
-
 
 # ─────────────────────────────────────────────────────────────
 def display_message_part(part):
@@ -114,31 +109,11 @@ st.markdown(get_padding_html(), unsafe_allow_html=True)
 
 col1_chatbot, col2_chatbot = st.columns([1, 1])
 
-questions = ['Wie würdest du den Reifegrad eurer Organisation im Bereich nutzerzentrierte Entwicklung einschätzen – von Einsteiger bis sehr erfahren?',
-             'Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?',
-             'Gibt es ein UX-Experten in Ihrem Unternehmen?',
-             'Können am Entwickungsprozess des digitalen Produktes / der Dienstleistung beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen?',
-             'Wie ist die interne Kommunikation und Zusammenarbeit in Bezug auf "Usability und User Experience" im Entwicklungsprozess strukturiert?']
+questions = organizing_questions
 
-response_options_UX_experience = ['Einsteiger – Erste Berührungspunkte, keine oder sehr geringe praktische Erfahrung',
-                                  'Grundkenntnisse – Einzelne UX-Methoden bekannt, punktuell angewendet',
-                                  'Fortgeschritten – Regelmäßige Anwendung nutzerzentrierter Methoden im Projektkontext',
-                                  'Erfahren – Systematische Integration in Prozesse, klare Zuständigkeiten',
-                                  'Sehr erfahren – Strategisch verankert, teamübergreifend gelebt, kontinuierliche Optimierung']
-response_options_expert = ['True', 'False']
+response_options = organzing_response_text_options
 
-response_options = [
-    response_options_UX_experience,
-    [option.text for option in organizing_question_1],
-    response_options_expert,
-    [option.text for option in organizing_question_2],
-    [option.text for option in organizing_question_3]
-]
-
-expert_response = organizing_question_1[1].text
-
-
-
+expert_response = organizing_response_q1[1].text
 
 async def main():
 
@@ -227,34 +202,36 @@ async def main():
 
                     if len(repos) + 2 == len(response_options):
                         if not st.session_state.have_ux_expert:
-                            st.session_state.agent_deps.condition = "Es gibt keine UX-Experten im Unternehmen. Wähle nur Methoden aus die keinen benötigen."
-                        st.session_state.agent_deps.explicit_search_query = "Methoden in der Phase Organisieren"
+                            st.session_state.agent_deps.condition = get_no_expert_condition()
+                        st.session_state.agent_deps.explicit_search_query = get_method_search_string(Phasen.ORGANIZING.value)
                         methods = ""
-                        async for message in run_agent_with_streaming(
-                                user_input=f"Welche Methoden gibt es in der Phase Organisieren?", use_history=False):
+                        async for message in run_agent_with_streaming(user_input=get_method_user_input(Phasen.ORGANIZING.value), use_history=False):
                             methods += message
-                        st.session_state.agent_deps.condition = "Gib nur KI-Tools zurück. Dabei soll der Name des KI-Tools enthalten sein."
-                        st.session_state.agent_deps.explicit_search_query = "KI Tools Phase Organisieren"
-                        ki_tools = ""
-                        async for message in run_agent_with_streaming(
-                                f"Gib mir KI_Tools mit Kurzbeschreibung zurück, die man in der Phase Organsieren anwenden kann?",
-                                use_history=False):
-                            ki_tools += message
+                        st.session_state.agent_deps.condition = get_ai_tool_condition()
+                        st.session_state.agent_deps.explicit_search_query = get_ai_tool_search_query(Phasen.ORGANIZING.value)
+
+                        ai_tools = ""
+                        async for message in run_agent_with_streaming(get_ai_tool_user_input(Phasen.ORGANIZING.value), use_history=False):
+                            ai_tools += message
 
                         st.session_state.agent_deps.condition = None
                         st.session_state.agent_deps.explicit_search_query = None
                         print(methods)
-                        print(ki_tools)
-                        a1 = next(a for a in organizing_question_1 if a.text == repos[0])
-                        a2 = next(a for a in organizing_question_2 if a.text == repos[1])
-                        a3 = next(a for a in organizing_question_3 if a.text == repos[2])
+                        print(ai_tools)
+
+                        a1 = next(a for a in organizing_response_q1 if a.text == repos[0])
+                        a2 = next(a for a in organizing_response_q2 if a.text == repos[1])
+                        a3 = next(a for a in organizing_response_q3 if a.text == repos[2])
                         with st.chat_message("assistant"):
                             response = await evaluate_phase(
                                 nutzereingabe=st.session_state.o_user_inputs,
                                 antworten=BewertungEingabe(antwortoptionen=[a1, a2, a3]),
                                 phase=Phasen.ORGANIZING.value,
                                 ux_erfahrung=st.session_state.ux_experience,
-                                methoden=methods, ki_tools=ki_tools)
+                                methoden=methods, ki_tools=ai_tools, evaluation_metrik=organzing_rating_metrik)
+
+                            print("RESPONSE")
+                            print(response.output)
 
                             st.markdown(response.output.gesamtbewertungstext, unsafe_allow_html=True)
                             st.session_state.org_chat_messages.extend(
@@ -294,12 +271,7 @@ with st.container():
         with sub_col1:
             st.markdown(get_menu_heading_html(Phasen.ORGANIZING.value), unsafe_allow_html=True)
         with sub_col2:
-
-            st.button("ℹ️",
-                      help="""Die Phase Organisation umfasst alle organisatorischen Elemente, die sicherstellen, 
-                      dass die Benutzererfahrung eine hohe Priorität im Unternehmen hat. Dazu gehören die 
-                      Verankerung einer nutzerzentrierten Denkweise und das Vorhandensein von UX-Experten.""",
-                      type="tertiary")
+            st.button("ℹ️", help=organizing_summary, type="tertiary")
 
         if st.button("Wechsle in nächste Phase", use_container_width=True, disabled=not st.session_state.get("o_evaluation_finished", False)):
             st.switch_page("pages/simulation-understanding.py")

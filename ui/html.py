@@ -2,6 +2,14 @@ import textwrap
 
 from ui.css import get_review_container_css
 
+def get_sidebar_html():
+    return textwrap.dedent("""
+   <style>
+   [data-testid="stSidebar"][aria-expanded="true"]{
+       min-width: 15%;
+       max-width: 15%;
+   }
+   """)
 
 def get_header_html():
     return textwrap.dedent("""

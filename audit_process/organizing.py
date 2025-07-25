@@ -1,6 +1,17 @@
-from agents.quantitative_rating_agent import Antwortoption
+from agents.rating_agent import Antwortoption
+from audit_process.general import response_options_UX_experience, response_options_expert
 
-organizing_question_1 = [
+organizing_summary = """Die Phase Organisation umfasst alle organisatorischen Elemente, die sicherstellen, 
+                      dass die Benutzererfahrung eine hohe Priorität im Unternehmen hat. Dazu gehören die 
+                      Verankerung einer nutzerzentrierten Denkweise und das Vorhandensein von UX-Experten."""
+
+organizing_questions = ['Wie würdest du den Reifegrad eurer Organisation im Bereich nutzerzentrierte Entwicklung einschätzen – von Einsteiger bis sehr erfahren?',
+             'Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?',
+             'Gibt es ein UX-Experten in Ihrem Unternehmen?',
+             'Können am Entwickungsprozess des digitalen Produktes / der Dienstleistung beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen?',
+             'Wie ist die interne Kommunikation und Zusammenarbeit in Bezug auf "Usability und User Experience" im Entwicklungsprozess strukturiert?']
+
+organizing_response_q1 = [
         Antwortoption(
             text='Es gibt ein ganzes UUX-Team oder eine UUX-Abteilung.',
             punkte=3,
@@ -59,7 +70,7 @@ organizing_question_1 = [
         )
 ]
 
-organizing_question_2 = [
+organizing_response_q2 = [
         Antwortoption(
             text='Ja, alle',
             punkte=2,
@@ -100,7 +111,7 @@ organizing_question_2 = [
         )
 ]
 
-organizing_question_3 = [
+organizing_response_q3 = [
         Antwortoption(
             text='Es gibt regelmäßige Meetings ausschließlich zu UUX-Themen mit allen Beteiligten.',
             punkte=3,
@@ -153,62 +164,23 @@ organizing_question_3 = [
         )
 ]
 
-alt_organizing_question_4 = [
-        Antwortoption(
-            text=(
-                "Es gibt eine verbindliche und dokumentierte Planung, wie und wann Nutzer systematisch in mehreren Projektphasen "
-                "einbezogen werden (z.B. Anforderungsanalyse, Tests, Evaluation)."
-            ),
-            punkte=3,
-            bewertung="Sehr gut",
-            begruendung=(
-                "Eine verbindliche und dokumentierte Nutzer-Einbindung über mehrere Phasen zeigt, dass das Unternehmen "
-                "systematisch und konsequent nutzerzentrierte Entwicklung umsetzt."
-            ),
-            verbesserungpotential=(
-                "Diese Praxis ist vorbildlich. Wichtig ist, die Planungen regelmäßig zu überprüfen und die Nutzerbedürfnisse "
-                "fortlaufend zu validieren."
-            )
-        ),
-        Antwortoption(
-            text=(
-                "Es ist eine Einbindung vorgesehen (z.B. Tests oder Interviews), aber nicht verbindlich dokumentiert oder nicht für alle Phasen geplant."
-            ),
-            punkte=2,
-            bewertung="Gut",
-            begruendung=(
-                "Das Unternehmen erkennt die Bedeutung der Nutzer-Einbindung an, hat jedoch noch keine vollständige oder verbindliche "
-                "Planung umgesetzt."
-            ),
-            verbesserungpotential=(
-                "Verbindliche Dokumentation und Planung für alle relevanten Phasen einführen, um die Nutzerzentrierung zu stärken."
-            )
-        ),
-        Antwortoption(
-            text=(
-                "Eine gelegentliche Einbindung ist angedacht oder erfolgt erfahrungsgemäß, aber ohne klare Planung."
-            ),
-            punkte=1,
-            bewertung="Ausreichend – mit Schwächen",
-            begruendung=(
-                "Ungeplante oder gelegentliche Nutzerbeteiligung kann wertvolle Erkenntnisse bringen, ist aber zu unstrukturiert, "
-                "um eine konsistente Nutzerorientierung sicherzustellen."
-            ),
-            verbesserungpotential=(
-                "Klare, verbindliche Planungen für Nutzer-Einbindung entwickeln und kommunizieren."
-            )
-        ),
-        Antwortoption(
-            text="Es gibt keine vorgesehene Planung zur Einbindung von Nutzer.",
-            punkte=0,
-            bewertung="Ungenügend – nicht zertifizierungsfähig",
-            begruendung=(
-                "Fehlende Planung zur Nutzer-Einbindung bedeutet, dass wichtige Nutzerperspektiven und -bedürfnisse im Entwicklungsprozess "
-                "nicht systematisch berücksichtigt werden."
-            ),
-            verbesserungpotential=(
-                "Sofortige Entwicklung und Umsetzung einer verbindlichen Nutzer-Einbindungsplanung, um eine nutzerzentrierte Entwicklung "
-                "zu ermöglichen."
-            )
-        )
+
+all_response_lists = [
+    organizing_response_q1,
+    organizing_response_q2,
+    organizing_response_q3
+]
+
+organzing_rating_metrik = alternative_bewertung_organizing = [
+    {"bewertung": option.bewertung, "inhalt": option.text}
+    for antwortliste in all_response_lists
+    for option in antwortliste
+]
+
+organzing_response_text_options = [
+    response_options_UX_experience,
+    [option.text for option in organizing_response_q1],
+    response_options_expert,
+    [option.text for option in organizing_response_q2],
+    [option.text for option in organizing_response_q3]
 ]

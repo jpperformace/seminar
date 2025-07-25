@@ -115,8 +115,6 @@ def query_collection(
     Returns:
         Query results containing documents, metadatas, distances, and ids
     """
-    print(collection)
-    print(query_text)
     query = collection.query(
         query_texts=[query_text],
         n_results=n_results,

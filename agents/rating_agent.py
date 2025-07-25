@@ -6,12 +6,6 @@ from typing import Literal, Optional
 
 import os
 
-class Phasen(Enum):
-    ORGANIZING = 'Organisieren'
-    UNDERSTANDING = 'Verstehen'
-    DESIGNING = 'Gestalten'
-    EVALUATION = 'Bewerten'
-
 class Antwortoption(BaseModel):
     text: str
     hinweis: Optional[str] = None
@@ -40,36 +34,38 @@ quan_rat_agent = Agent(
         "Deine Aufgabe ist es, basierend auf vier Antworten, eine Tendenz für den Reifegrad in der jeweilgen Phase "
         "zu geben. Dafur werden dir bereits Bewertung, Begründung und Verbesserungspotentiale der einzelnen Antworten übergeben."
         "In dem Feld 'gesamtbewertungstext' soll einem kurzen und durch Absätze sturkturierter Text über der Gesamteinschätzung sein."
-        "Begründe mit den übergebenen Informationen kausal, damit deutlich wird wie die Gesamtbewertung zurstande kommt."
         "Schreibe die Bewertung kompakt und stelle transparent dar, dass es sich um eine subjektive Einschätzung handelt "
         "basierend auf den Eingabedaten handelt. Stelle den causalen Zusammenhang zwischen Eingabe und Bewertung dar."
-        "Mache deutlich, dass eine eindeutige Bewertung durch einen Auditor"
-        "getroffen werden kann und man diesen bei Unstimmigkeiten immer zu raten ziehen sollte."
+        "Mache deutlich, dass eine eindeutige Bewertung durch einen Auditor getroffen werden kann und man diesen bei Unstimmigkeiten immer zu raten ziehen sollte."
         "Füge ganz am Ende hinzu, dass Rückfragen zur Beurteilung wie auch zu Methoden und KI-Tools der Phase gestellt werden können."
         "Die Felder 'gesamtbewertung', 'gesamtbegruendung' und 'gesamtverbesserungspotential' sollen die einzelnen Punkte verständlich," 
         "aber trotzdem kurz und prägnant zusammenfassen. "
-        "Im Feld 'gesamtverbesserungspotential' soll zunächst nur auf Zielebene beschrieben werden, welche allgemeinen Verbesserungsziele verfolgt werden sollten. "
-        "Es sollen dort keine konkreten Methoden oder KI-Tools genannt werden."
-        "und anschließen in Unterpunkten konkrete Methoden und KI-Tools vorgeschlagen werden."
-        "In den Feldern 'Methoden' und 'KI-Tools' soll ergänzend auf Zielebene aufgezeigt werden, welche weiteren Maßnahmen sinnvoll wären."
-        "Der Fokus liegt dabei auf konstruktiven, zielgerichteten Vorschlägen. Gib explizit die Namen der empfohlen Methoden und KI-Tools an."
-        "Gib nur zusammenhängende Texte keine Aufzählungen innerhalb der Felder zurück."
+        "In das Feld 'gesamtbegruendung' soll mit den übergebenen Informationen kausal begründet werden, damit deutlich wird wie die Gesamtbewertung zurstande kommt."
+        "In das Feld 'gesamtbegruendung' soll am Ende ein einzelner kontrafaktischer Satz eingebaut werden, der hypothetisch beschreibt, "
+        "was inhaltlich anders hätte sein müssen, damit eine bessere Bewertung erzielt worden wäre." 
+        "Dieser Satz muss ohne konkrete Punktzahl oder Score formuliert sein und soll auf der übergeben Bewertungsmetrik basieren."
+        "Er ist integraler Bestandteil der Gesamtbegründung und darf nicht ausgelassen werden."
+        "Es soll in der gesamtbegruendung keine Score genannt werden sondern qualitativ begründet werden."
+        "Im Feld 'Gesamtverbesserungspotenzial' soll zunächst ausschließlich auf Zielebene beschrieben werden, "
+        "welche übergeordneten Verbesserungsziele verfolgt werden sollten. Konkrete Methoden oder KI-Tools dürfen hier nicht genannt werden. "
+        "In den Feldern 'Methoden' und 'KI-Tools' soll ebenfalls auf Zielebene argumentiert werden, jedoch mit dem Ziel, geeignete Maßnahmen zu identifizieren. "
+        "Dabei sind explizit die Namen der empfohlenen Methoden bzw. KI-Tools anzugeben. "
+        "Die jeweils am besten passende Methode bzw. das geeignetste KI-Tool soll etwas ausführlicher erläutert werden. "
+        "Zusätzlich sind alternative Vorschläge zu nennen und kontrastiv (contrastive) zu erklären, weshalb diese im Vergleich weniger geeignet erscheinen. "
+        "Der Detaillierungsgrad der Ausführungen soll sich an der Bewertung orientieren: Je schlechter die Bewertung, desto ausführlicher die Beschreibung; "
+        "bei guter Bewertung genügen knappe Hinweise. "
+        "Der Fokus liegt insgesamt auf konstruktiven, zielgerichteten Vorschlägen. "
+        "Gib die Inhalte als durchgehenden Fließtext ohne Aufzählungen aus."
     )
 )
 
-async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, phase: str, ux_erfahrung: str, methoden:str, ki_tools:str):
+async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, phase: str, ux_erfahrung: str, methoden:str, ki_tools:str, evaluation_metrik:str):
     prompt = (
         f"Bewerte die Phase '{phase}' im Audit zur nutzerzentrierten Entwicklung anhand folgender "
         "vordefinierter Bewertungsschema für die gegebenen Antworten:\n\n"
-        f"Je nach UX-Erfahrung des Unternehmens ({ux_erfahrung}) soll der Fokus der Erklärung sowie der Detailgrad der Begründung angepasst werden. Dabei orientiert sich die Gestaltung der Erklärung an den Konzepten von Ye et al.\n\n"
-        "- Bei **wenig Erfahrung**:\n"
-        "  - **Terminology**: Fachbegriffe (z.B. Methoden) sollen verständlich erklärt werden.\n"
-        "  - **Justification**: Die Begründung soll ausführlich darlegen, *warum* eine bestimmte Bewertung vergeben wurde.\n"
-        "  - **Traceability** ist in dieser Gruppe weniger vorrangig.\n\n"
-        "- Bei **erfahreneren Unternehmen**:\n"
-        "  - **Terminology**: Kann reduziert werden – Fachbegriffe müssen nicht mehr ausführlich erläutert werden.\n"
-        "  - **Justification**: Die Begründung soll weiterhin klar erkennbar machen, *warum* eine Bewertung erfolgt ist – jedoch kurz, prägnant und fachlich fundiert.\n"
-        "  - **Traceability**: Es soll transparent sein, *welche* Kriterien oder Beobachtungen zum Ergebnis geführt haben.\n"
+        f"Methoden: {methoden}\n"
+        f"KI-Tools: {ki_tools}\n"
+        f"Bewertungsmetrik: {evaluation_metrik}\n\n"
     )
     for i, antwort in enumerate(antworten.antwortoptionen, 0):
         print(nutzereingabe[i])
@@ -78,13 +74,12 @@ async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, p
             f"Text: {antwort.text}\n"
             f"Eingabe: {nutzereingabe[i]}\n"
             f"Hinweis: {antwort.hinweis}\n"
-            f"Methoden: {methoden}\n"
-            f"KI-Tools: {ki_tools}\n"
             f"Punkte: {antwort.punkte}\n"
             f"Bewertung: {antwort.bewertung}\n"
             f"Begründung: {antwort.begruendung}\n"
-            f"Verbesserungspotential: {antwort.verbesserungpotential}\n\n"
+            f"Verbesserungspotential: {antwort.verbesserungpotential}"
         )
+
     prompt += (
         f"Gib eine **Gesamtbewertung** der Phase **{phase}** ab, mit einer **kausalen Begründung**, "
         "die kompakt, erklärend und selektiv formuliert ist. Die Bewertung soll auf den Einzelbewertungen beruhen "
@@ -97,6 +92,18 @@ async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, p
         f"#### Vorläufige Bewertung der Phase {phase}\n\n"
         "- Beginne den Text mit: **'Ihr Unternehmen weist insgesamt...**'\n"
     )
+
+    prompt += (
+        f"Je nach UX-Erfahrung des Unternehmens ({ux_erfahrung}) soll der Fokus der Erklärung sowie der Detailgrad der Begründung angepasst werden. "
+        "Dabei orientiert sich die Gestaltung der Erklärung an den Konzepten von Ye et al.\n\n"
+        "- Bei **wenig Erfahrung**:\n"
+        "  - **Terminology**: Fachbegriffe (z.B. Methoden) sollen verständlich erklärt werden.\n"
+        "  - **Justification**: Die Begründung soll ausführlich darlegen, *warum* eine bestimmte Bewertung vergeben wurde.\n"
+        "  - **Traceability** ist in dieser Gruppe weniger vorrangig.\n\n"
+        "- Bei **erfahreneren Unternehmen**:\n"
+        "  - **Terminology**: Kann reduziert werden – Fachbegriffe müssen nicht mehr ausführlich erläutert werden.\n"
+        "  - **Justification**: Die Begründung soll weiterhin klar erkennbar machen, *warum* eine Bewertung erfolgt ist – jedoch kurz, prägnant und fachlich fundiert.\n"
+        "  - **Traceability**: Es soll transparent sein, *welche* Kriterien oder Beobachtungen zum Ergebnis geführt haben.\n")
 
     response = await quan_rat_agent.run(user_prompt=prompt)
 
