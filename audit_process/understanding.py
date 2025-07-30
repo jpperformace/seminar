@@ -192,6 +192,5 @@ understanding_rating_metrik = [
 
 
 understanding_response_text_options = [
-    option.text for response in all_response_list
-    for option in response
+    [option.text for option in response] for response in all_response_list
 ]

@@ -73,6 +73,8 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
         Formatted context information from the retrieved documents.
     """
 
+    print("retrieving documents...")
+    print(search_query)
     # Get ChromaDB client and collection
     collection = get_or_create_collection(
         context.deps.chroma_client,

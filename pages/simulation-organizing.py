@@ -15,7 +15,8 @@ from audit_process.general import response_options_UX_experience, response_optio
     get_ai_tool_user_input, get_no_expert_condition
 from ui.css import get_header_css, get_menu_css, get_review_container_css, get_download_button_css
 from ui.html import get_new_review_text, get_default_hint_text, get_review_heading, get_header_html, \
-    get_padding_html, get_tertiary_button_html, get_menu_heading_html, get_review_html, get_sidebar_html
+    get_padding_html, get_tertiary_button_html, get_menu_heading_html, get_review_html, get_sidebar_html, \
+    get_final_review_html
 from audit_process.organizing import organizing_response_q1, organizing_response_q3, \
     organizing_response_q2, organizing_questions, organizing_summary, organzing_response_text_options, \
     organzing_rating_metrik
@@ -44,7 +45,7 @@ def update_document(phase:str, bewertung:str, begruendung:str, verbessung:str, m
     new_text += get_new_review_text(phase, bewertung, begruendung, verbessung, methoden, ki_tools)
     st.session_state.doc_text = new_text
 
-async def run_agent_with_streaming(user_input, use_history=True):
+async def run_agent_with_streaming(user_input, use_history=True, add_message=True):
     print("User input:", user_input)
     print("Use history:", use_history)
 
@@ -55,7 +56,9 @@ async def run_agent_with_streaming(user_input, use_history=True):
     ) as result:
         async for message in result.stream_text(delta=True):
             yield message
-    st.session_state.org_chat_messages.extend(result.new_messages())
+
+    if add_message:
+        st.session_state.org_chat_messages.extend(result.new_messages())
 
 # ─────────────────────────────────────────────────────────────
 # Init session state
@@ -155,6 +158,8 @@ async def main():
                         message_placeholder.markdown(full_response)
 
                 if st.session_state.o_question_index < len(questions):
+                    print(user_input)
+                    print(response_options)
                     with st.chat_message("user"):
                         st.markdown(user_input)
                         st.session_state.o_user_inputs.append(user_input)
@@ -205,13 +210,13 @@ async def main():
                             st.session_state.agent_deps.condition = get_no_expert_condition()
                         st.session_state.agent_deps.explicit_search_query = get_method_search_string(Phasen.ORGANIZING.value)
                         methods = ""
-                        async for message in run_agent_with_streaming(user_input=get_method_user_input(Phasen.ORGANIZING.value), use_history=False):
+                        async for message in run_agent_with_streaming(user_input=get_method_user_input(Phasen.ORGANIZING.value), use_history=False, add_message=False):
                             methods += message
                         st.session_state.agent_deps.condition = get_ai_tool_condition()
                         st.session_state.agent_deps.explicit_search_query = get_ai_tool_search_query(Phasen.ORGANIZING.value)
 
                         ai_tools = ""
-                        async for message in run_agent_with_streaming(get_ai_tool_user_input(Phasen.ORGANIZING.value), use_history=False):
+                        async for message in run_agent_with_streaming(get_ai_tool_user_input(Phasen.ORGANIZING.value), use_history=False, add_message=False):
                             ai_tools += message
 
                         st.session_state.agent_deps.condition = None
@@ -242,6 +247,8 @@ async def main():
                                             response.output.gesamtverbesserungspotential, response.output.methoden,
                                             response.output.ki_tools)
                             st.session_state.o_evaluation_finished = True
+
+                            print(st.session_state.org_chat_messages)
 
 
 
@@ -283,9 +290,9 @@ with st.container():
 with st.container():
     st.download_button(
         label="Download als HTML",
-        data=st.session_state.doc_text,
+        data=get_final_review_html(st.session_state.doc_text),
         file_name="review.html",
         mime="text/html"
     )
-    button_css = float_css_helper(width="37%", bottom="0.3rem", left="90%", transition=0)
+    button_css = float_css_helper(width="37%", bottom="0.3rem", left="60%", transition=0)
     float_parent(css=button_css)

@@ -69,9 +69,27 @@ def get_new_review_text(phase:str, bewertung:str, begruendung:str, verbessung:st
     </ul>
     <hr>
 </div>
-
     """
     return new_text
+
+def get_final_review_html(new_text:str):
+    return textwrap.dedent(f"""
+    <html>
+    <head>
+      <style>
+        body {{
+          font-family: 'Arial', sans-serif;
+          font-size: 0.85rem;
+          color: #333;
+          padding: 2rem;
+        }}
+      </style>
+    </head>
+    <body>
+      {new_text}
+    </body>
+    </html>
+    """)
 
 def get_default_hint_text():
     return textwrap.dedent("""
