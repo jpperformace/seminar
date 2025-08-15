@@ -7,9 +7,9 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart, Te
 import asyncio
 
 from agents.agent_loader import get_agent
-from agents.assign_response_agent import AssignResponseInput, assign_user_input
+from agents.context_agent import AssignResponseInput, assign_user_input
 from agents.rating_agent import evaluate_phase, BewertungEingabe
-from agents.rag_agent import chat_agent
+from agents.retrieval_agent import chat_agent
 from audit_process.general import response_options_UX_experience, response_options_expert, get_method_condition, \
     get_method_search_string, get_method_user_input, Phasen, get_ai_tool_condition, get_ai_tool_search_query, \
     get_ai_tool_user_input, get_no_expert_condition
@@ -133,6 +133,7 @@ async def main():
             index = st.session_state.o_question_index
 
             if index == 0 and not st.session_state.o_question_asked_once:
+                print("Erste Frage")
                 with st.chat_message("assistant"):
                     st.markdown(questions[index], unsafe_allow_html=True)
                     st.session_state.org_chat_messages.extend(
@@ -158,8 +159,7 @@ async def main():
                         message_placeholder.markdown(full_response)
 
                 if st.session_state.o_question_index < len(questions):
-                    print(user_input)
-                    print(response_options)
+                    print("User Input")
                     with st.chat_message("user"):
                         st.markdown(user_input)
                         st.session_state.o_user_inputs.append(user_input)
@@ -173,6 +173,7 @@ async def main():
                     assigned_resp = result.output.assigned_response
 
                     if assigned_resp is None or assigned_resp == 'None':
+                        print("keine Zuordnung")
                         with st.chat_message("assistant"):
                             st.markdown(result.output.error_message, unsafe_allow_html=True)
                             st.session_state.org_chat_messages.extend(
@@ -198,6 +199,7 @@ async def main():
                         index = st.session_state.o_question_index
 
                     if index < len(questions) and st.session_state.o_got_valid_response:
+                        print("neue Frage")
                         with st.chat_message("assistant"):
                             st.markdown(questions[index], unsafe_allow_html=True)
                             st.session_state.org_chat_messages.extend(
@@ -206,28 +208,29 @@ async def main():
                     repos = st.session_state.o_user_response
 
                     if len(repos) + 2 == len(response_options):
-                        if not st.session_state.have_ux_expert:
-                            st.session_state.agent_deps.condition = get_no_expert_condition()
-                        st.session_state.agent_deps.explicit_search_query = get_method_search_string(Phasen.ORGANIZING.value)
-                        methods = ""
-                        async for message in run_agent_with_streaming(user_input=get_method_user_input(Phasen.ORGANIZING.value), use_history=False, add_message=False):
-                            methods += message
-                        st.session_state.agent_deps.condition = get_ai_tool_condition()
-                        st.session_state.agent_deps.explicit_search_query = get_ai_tool_search_query(Phasen.ORGANIZING.value)
+                        with st.spinner("Die Bewertung wird jetzt ausgeführt das kann einige Zeit dauern."):
+                            if not st.session_state.have_ux_expert:
+                                st.session_state.agent_deps.condition = get_no_expert_condition()
+                            st.session_state.agent_deps.explicit_search_query = get_method_search_string(Phasen.ORGANIZING.value)
+                            methods = ""
+                            async for message in run_agent_with_streaming(user_input=get_method_user_input(Phasen.ORGANIZING.value), use_history=False, add_message=False):
+                                methods += message
+                            st.session_state.agent_deps.condition = get_ai_tool_condition()
+                            st.session_state.agent_deps.explicit_search_query = get_ai_tool_search_query(Phasen.ORGANIZING.value)
 
-                        ai_tools = ""
-                        async for message in run_agent_with_streaming(get_ai_tool_user_input(Phasen.ORGANIZING.value), use_history=False, add_message=False):
-                            ai_tools += message
+                            ai_tools = ""
+                            async for message in run_agent_with_streaming(get_ai_tool_user_input(Phasen.ORGANIZING.value), use_history=False, add_message=False):
+                                ai_tools += message
 
-                        st.session_state.agent_deps.condition = None
-                        st.session_state.agent_deps.explicit_search_query = None
-                        print(methods)
-                        print(ai_tools)
+                            st.session_state.agent_deps.condition = None
+                            st.session_state.agent_deps.explicit_search_query = None
+                            print(methods)
+                            print(ai_tools)
 
-                        a1 = next(a for a in organizing_response_q1 if a.text == repos[0])
-                        a2 = next(a for a in organizing_response_q2 if a.text == repos[1])
-                        a3 = next(a for a in organizing_response_q3 if a.text == repos[2])
-                        with st.chat_message("assistant"):
+                            a1 = next(a for a in organizing_response_q1 if a.text == repos[0])
+                            a2 = next(a for a in organizing_response_q2 if a.text == repos[1])
+                            a3 = next(a for a in organizing_response_q3 if a.text == repos[2])
+
                             response = await evaluate_phase(
                                 nutzereingabe=st.session_state.o_user_inputs,
                                 antworten=BewertungEingabe(antwortoptionen=[a1, a2, a3]),
@@ -235,12 +238,9 @@ async def main():
                                 ux_erfahrung=st.session_state.ux_experience,
                                 methoden=methods, ki_tools=ai_tools, evaluation_metrik=organzing_rating_metrik)
 
-                            print("RESPONSE")
-                            print(response.output)
-
-                            st.markdown(response.output.gesamtbewertungstext, unsafe_allow_html=True)
                             st.session_state.org_chat_messages.extend(
-                                [ModelResponse(parts=[TextPart(content=response.output.gesamtbewertungstext, part_kind='text')])])
+                                [ModelResponse(
+                                    parts=[TextPart(content=response.output.gesamtbewertungstext, part_kind='text')])])
                             st.session_state.o_user_response = []
                             update_document(Phasen.ORGANIZING.value, response.output.gesamtbewertung,
                                             response.output.gesamtbegruendung,
@@ -248,7 +248,16 @@ async def main():
                                             response.output.ki_tools)
                             st.session_state.o_evaluation_finished = True
 
-                            print(st.session_state.org_chat_messages)
+                            with st.chat_message("assistant"):
+                                st.markdown(response.output.gesamtbewertungstext, unsafe_allow_html=True)
+
+                                print("RESPONSE")
+                                print(response.output)
+
+
+
+
+                                print(st.session_state.org_chat_messages)
 
 
 

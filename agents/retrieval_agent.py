@@ -96,6 +96,8 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
     if context.deps.condition:
         formatted_context += f"POST CONDITION: {context.deps.condition}\n\n "
 
+    print(formatted_context)
+
     return formatted_context
 
 

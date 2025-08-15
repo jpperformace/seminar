@@ -6,9 +6,9 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart, Te
 import asyncio
 
 from agents.agent_loader import get_agent
-from agents.assign_response_agent import AssignResponseInput, assign_user_input
+from agents.context_agent import AssignResponseInput, assign_user_input
 from agents.rating_agent import evaluate_phase, BewertungEingabe
-from agents.rag_agent import chat_agent
+from agents.retrieval_agent import chat_agent
 from audit_process.general import Phasen, get_method_condition, get_method_search_string, get_method_user_input, \
     get_ai_tool_condition, get_ai_tool_search_query, get_ai_tool_user_input, get_no_expert_condition
 from ui.css import get_menu_css, get_header_css, get_review_container_css

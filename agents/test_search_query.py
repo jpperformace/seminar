@@ -13,7 +13,7 @@ Run Test in command line using:
 
 import asyncio
 
-from agents.rag_agent import chat_agent, RAGDeps
+from agents.retrieval_agent import chat_agent, RAGDeps
 from audit_process.general import get_method_condition, get_method_user_input, get_ai_tool_search_query, \
     get_ai_tool_condition
 from utils import get_chroma_client

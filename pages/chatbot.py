@@ -9,7 +9,7 @@ from pydantic_ai.messages import (
 )
 
 from agents.agent_loader import get_agent
-from agents.rag_agent import chat_agent
+from agents.retrieval_agent import chat_agent
 
 load_dotenv()
 
