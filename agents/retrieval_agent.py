@@ -28,9 +28,6 @@ from utils import (
     format_results_as_context
 )
 
-
-print("OpenAI API Key:", os.getenv("OPENAI_API_KEY"))
-
 # Check for OpenAI API key
 if not os.getenv("OPENAI_API_KEY"):
     print("Error: OPENAI_API_KEY environment variable not set.")
@@ -74,7 +71,7 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
     """
 
     print("retrieving documents...")
-    print(search_query)
+
     # Get ChromaDB client and collection
     collection = get_or_create_collection(
         context.deps.chroma_client,

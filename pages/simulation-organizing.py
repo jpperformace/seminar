@@ -46,8 +46,6 @@ def update_document(phase:str, bewertung:str, begruendung:str, verbessung:str, m
     st.session_state.doc_text = new_text
 
 async def run_agent_with_streaming(user_input, use_history=True, add_message=True):
-    print("User input:", user_input)
-    print("Use history:", use_history)
 
     async with chat_agent.run_stream(
         user_input,
@@ -285,7 +283,7 @@ with st.container():
     st.download_button(
         label="Download als HTML",
         data=get_final_review_html(st.session_state.doc_text),
-        file_name="review.html",
+        file_name="audit_report_document.html",
         mime="text/html"
     )
     button_css = float_css_helper(width="37%", bottom="0.3rem", left="60%", transition=0)
