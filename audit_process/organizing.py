@@ -5,7 +5,7 @@ organizing_summary = """Die Phase Organisation umfasst alle organisatorischen El
                       dass die Benutzererfahrung eine hohe Priorität im Unternehmen hat. Dazu gehören die 
                       Verankerung einer nutzerzentrierten Denkweise und das Vorhandensein von UX-Experten."""
 
-organizing_questions = ['Wie würdest du den Reifegrad eurer Organisation im Bereich nutzerzentrierte Entwicklung einschätzen – von Einsteiger bis sehr erfahren?',
+organizing_questions = ['Bitte schätzen Sie den Reifegrad Ihrer Organisation im Bereich nutzerzentrierte Entwicklung ein (von Einsteiger bis sehr erfahren).',
              'Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?',
              'Gibt es ein UX-Experten in Ihrem Unternehmen?',
              'Können am Entwickungsprozess des digitalen Produktes / der Dienstleistung beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen?',

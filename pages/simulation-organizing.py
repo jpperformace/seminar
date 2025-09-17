@@ -133,7 +133,6 @@ async def main():
             index = st.session_state.o_question_index
 
             if index == 0 and not st.session_state.o_question_asked_once:
-                print("Erste Frage")
                 with st.chat_message("assistant"):
                     st.markdown(questions[index], unsafe_allow_html=True)
                     st.session_state.org_chat_messages.extend(
@@ -159,7 +158,6 @@ async def main():
                         message_placeholder.markdown(full_response)
 
                 if st.session_state.o_question_index < len(questions):
-                    print("User Input")
                     with st.chat_message("user"):
                         st.markdown(user_input)
                         st.session_state.o_user_inputs.append(user_input)
@@ -173,7 +171,6 @@ async def main():
                     assigned_resp = result.output.assigned_response
 
                     if assigned_resp is None or assigned_resp == 'None':
-                        print("keine Zuordnung")
                         with st.chat_message("assistant"):
                             st.markdown(result.output.error_message, unsafe_allow_html=True)
                             st.session_state.org_chat_messages.extend(
@@ -199,7 +196,6 @@ async def main():
                         index = st.session_state.o_question_index
 
                     if index < len(questions) and st.session_state.o_got_valid_response:
-                        print("neue Frage")
                         with st.chat_message("assistant"):
                             st.markdown(questions[index], unsafe_allow_html=True)
                             st.session_state.org_chat_messages.extend(
@@ -251,17 +247,6 @@ async def main():
                             with st.chat_message("assistant"):
                                 st.markdown(response.output.gesamtbewertungstext, unsafe_allow_html=True)
 
-                                print("RESPONSE")
-                                print(response.output)
-
-
-
-
-                                print(st.session_state.org_chat_messages)
-
-
-
-                print(st.session_state.o_question_index)
 
 
 if __name__ == "__main__":
@@ -288,7 +273,7 @@ with st.container():
         with sub_col2:
             st.button("ℹ️", help=organizing_summary, type="tertiary")
 
-        if st.button("Wechsle in nächste Phase", use_container_width=True, disabled=not st.session_state.get("o_evaluation_finished", False)):
+        if st.button("Wechsle in die nächste Phase", use_container_width=True, disabled=not st.session_state.get("o_evaluation_finished", False)):
             st.switch_page("pages/simulation-understanding.py")
 
     with col2_info:

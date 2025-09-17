@@ -142,8 +142,6 @@ async def main():
                         message_placeholder.markdown(full_response)
 
                 if st.session_state.question_index < len(questions):
-                    print(user_input)
-                    print(response_options)
                     with st.chat_message("user"):
                         st.markdown(user_input)
                         st.session_state.u_user_inputs.append(user_input)
@@ -178,32 +176,28 @@ async def main():
 
                     repos = st.session_state.user_response
 
-                    print(st.session_state.user_response)
-                    print(st.session_state.have_ux_expert)
-
                     if len(repos) == len(response_options):
-                        a0 = next(a for a in understanding_response_q1 if a.text == repos[0])
-                        a1 = next(a for a in understanding_response_q2 if a.text == repos[1])
-                        a2 = next(a for a in understanding_response_q3 if a.text == repos[2])
+                        with st.spinner("Die Bewertung wird jetzt ausgeführt. Das kann einige Zeit dauern."):
+                            a0 = next(a for a in understanding_response_q1 if a.text == repos[0])
+                            a1 = next(a for a in understanding_response_q2 if a.text == repos[1])
+                            a2 = next(a for a in understanding_response_q3 if a.text == repos[2])
 
-                        st.session_state.agent_deps.condition = get_method_condition(a1)
-                        if not st.session_state.have_ux_expert:
-                            st.session_state.agent_deps.condition += get_no_expert_condition()
-                        st.session_state.agent_deps.explicit_search_query = get_method_search_string(Phasen.UNDERSTANDING.value)
-                        methods = ""
-                        async for message in run_agent_with_streaming(user_input=get_method_user_input(Phasen.UNDERSTANDING.value), use_history=False, add_message=False):
-                            methods += message
+                            st.session_state.agent_deps.condition = get_method_condition(a1)
+                            if not st.session_state.have_ux_expert:
+                                st.session_state.agent_deps.condition += get_no_expert_condition()
+                            st.session_state.agent_deps.explicit_search_query = get_method_search_string(Phasen.UNDERSTANDING.value)
+                            methods = ""
+                            async for message in run_agent_with_streaming(user_input=get_method_user_input(Phasen.UNDERSTANDING.value), use_history=False, add_message=False):
+                                methods += message
 
-                        st.session_state.agent_deps.condition = get_ai_tool_condition()
-                        st.session_state.agent_deps.explicit_search_query = get_ai_tool_search_query(Phasen.UNDERSTANDING.value)
-                        ai_tools = ""
-                        async for message in run_agent_with_streaming(get_ai_tool_user_input(Phasen.UNDERSTANDING.value), use_history=False, add_message=False):
-                            ai_tools += message
+                            st.session_state.agent_deps.condition = get_ai_tool_condition()
+                            st.session_state.agent_deps.explicit_search_query = get_ai_tool_search_query(Phasen.UNDERSTANDING.value)
+                            ai_tools = ""
+                            async for message in run_agent_with_streaming(get_ai_tool_user_input(Phasen.UNDERSTANDING.value), use_history=False, add_message=False):
+                                ai_tools += message
 
-                        st.session_state.agent_deps.condition = None
-                        st.session_state.agent_deps.explicit_search_query = None
-
-                        with st.chat_message("assistant"):
+                            st.session_state.agent_deps.condition = None
+                            st.session_state.agent_deps.explicit_search_query = None
 
                             response = await evaluate_phase(
                                 methoden=methods,
@@ -213,17 +207,17 @@ async def main():
                                 ux_erfahrung=st.session_state.ux_experience,
                                 ki_tools=ai_tools, evaluation_metrik=understanding_rating_metrik)
 
-                            print("RESPONSE")
-                            print(response.output)
-                            st.markdown(response.output.gesamtbewertungstext, unsafe_allow_html=True)
                             st.session_state.und_chat_messages.extend(
-                                [ModelResponse(parts=[TextPart(content=response.output.gesamtbewertungstext, part_kind='text')])])
+                                [ModelResponse(
+                                    parts=[TextPart(content=response.output.gesamtbewertungstext, part_kind='text')])])
                             st.session_state.user_response = []
-                            update_document(Phasen.UNDERSTANDING.value, response.output.gesamtbewertung, response.output.gesamtbegruendung,
-                                            response.output.gesamtverbesserungspotential, response.output.methoden, response.output.ki_tools)
+                            update_document(Phasen.UNDERSTANDING.value, response.output.gesamtbewertung,
+                                            response.output.gesamtbegruendung,
+                                            response.output.gesamtverbesserungspotential, response.output.methoden,
+                                            response.output.ki_tools)
 
-                print(st.session_state.question_index)
-
+                            with st.chat_message("assistant"):
+                                st.markdown(response.output.gesamtbewertungstext, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -251,7 +245,7 @@ with st.container():
 
             st.button("ℹ️", help=understanding_summary, type="tertiary")
 
-        if st.button("Wechsle in nächste Phase", use_container_width=True):
+        if st.button("Wechsle in die nächste Phase", use_container_width=True):
             st.switch_page("pages/simulation-understanding.py")
 
     with col2_info:

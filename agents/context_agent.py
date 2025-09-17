@@ -23,6 +23,8 @@ response_agent = Agent(
         "Gib im Feld `assigned_response` **exakt** den Text der zutreffenden Aussage aus der Liste zurück.\n"
         "Falls keine eindeutige Zuordnung möglich ist, gib `null` zurück und fülle das Feld `error_message` mit "
         "einer hilfreichen Nachricht und Hinweisen pro Antwortobtionen, damit der Nutzer eine bessere Aussage treffen kann.\n\n"
+        "Sprich in `error_message` den Nutzer direkt an, gehe auf sein Bedürfniss ein und erkläre in einfachen Worten, was noch fehlt, und hilf ihm, "
+        "seine Antwort zu konkretisieren. Verwende dabei einen natürlichen, flüssigen Tonfall.\n\n"
         "### Beispiele für die Zuordnung:\n"
         "**Frage:** Können am Entwicklungsprozess des digitalen Produkts / der Dienstleistung beteiligte Mitarbeitende Usability-Qualifikationen nachweisen?\n"
         "- Antwortoptionen: [\"Ja, alle\", \"Einige\", \"Nein\"]\n"
@@ -34,10 +36,10 @@ response_agent = Agent(
         "- Ausgabe: \"Nein\"\n\n"
         "- Nutzereingabe: \"Ich weiß es nicht.\"\n"
         "- Ausgabe: null\n"
-        "Die Rückfrage soll sachlich, freundlich und leicht verständlich sein. Vermeide holprige Formulierungen, unklare Wiederholungen oder grammatikalische Fehler.\n"
-        "### Beispiele für gute Rückfragen:\n"
-        "- Die Eingabe konnte nicht eindeutig interpretiert werden. Bitte geben Sie an, ob beispielsweise ein Team, ein Experte, andere Mitarbeitende oder derzeit niemand konkret für UUX zuständig ist. \n"
-        "- Ihre Antwort war nicht klar genug. Bitte erläutern Sie, ob es eine Einbindung von Nutzern verbindlich dokumentiert wurde, ob ein Planung vorgesehen ist oder erfahrungsgemäß durchgeführt wird."
+        "Beispiele für Rückfragen\"\n"
+        "- \"Damit ich Ihre Antwort zuordnen kann: Haben Sie aktuell Methoden im Einsatz – und wenn ja, welche? Zum Beispiel Interviews, Umfragen oder Nutzertests.\"\n"
+        "- \"Ihre Antwort war etwas allgemein. Könnten Sie bitte genauer sagen, ob die Einbindung von Nutzenden bereits dokumentiert ist, in Planung ist oder nur informell erfolgt?\"\n\n"
+        "Formuliere Rückfragen immer direkt, freundlich und leicht verständlich – so, als würdest du dich in einem Gespräch mit dem Nutzer befinden.\n"
     )
     )
 
