@@ -18,9 +18,6 @@ from pydantic_ai.agent import Agent
 # Load environment variables from .env file
 dotenv.load_dotenv()
 
-from graphiti_core import Graphiti
-from graphiti_core.nodes import EpisodeType
-
 from utils import (
     get_chroma_client,
     get_or_create_collection,
