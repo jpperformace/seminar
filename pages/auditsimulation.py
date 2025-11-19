@@ -13,15 +13,18 @@ from pydantic_ai.messages import (
 )
 
 from agents.agent_loader import get_agent
+from agents.context_agent import assign_user_input, AssignResponseInput
 from agents.retrieval_agent import chat_agent
 from agents.welcome_agent import get_welcome_message, start_simulation
 from audit_process.general import Phasen
-from audit_process.organizing import organizing_questions
+from audit_process.organizing import organizing_questions, organzing_response_text_options
+from utils import extract_assistant_response_text_from_output
 
 
 class ChatState(str, Enum):
     WELCOME = "Welcome"
     START_SIMULATION = "Start Simulation"
+    GET_CONTEXT_INFO = "Get Context Info"
     FOLLOW_UP = "Follow-Up"
 
 load_dotenv()
@@ -45,17 +48,31 @@ def display_message_part(part):
     # text
     elif part.part_kind == 'text':
         with st.chat_message("assistant"):
-            st.markdown(part.content)
+            try:
+                output_data = json.loads(part.content)
+            except json.JSONDecodeError as e:
+                st.error(f"Fehler beim Parsen des Agenten-Outputs: {e}")
+                return
+            st.markdown(output_data['antworttext'])
 
 def add_response_messages_to_history(messages):
+    print(messages)
     for msg in messages:
         if isinstance(msg, ModelResponse):
             st.session_state.messages.append(msg)
 
+def store_output_information(output_string):
+    try:
+        output_data = json.loads(output_string)
+    except json.JSONDecodeError as e:
+        st.error(f"Fehler beim Parsen des Agenten-Outputs: {e}")
+        return
+
+    if st.session_state.chat_state in [ChatState.WELCOME, ChatState.START_SIMULATION]:
+        st.session_state.simulation_started = output_data['simulation_gestartet']
+
 async def run_welcome_agent_with_streaming():
     async with get_welcome_message(Phasen.ORGANIZING.value) as response:
-
-        print(response)
         async for output in response.stream_output():
             yield output
 
@@ -65,11 +82,27 @@ async def run_welcome_agent_with_streaming():
 
 
 async def run_simulation_agent_with_streaming(userinput, frage):
-    print("Starting simulation agent")
-    print(frage)
     async with start_simulation(userinput, frage, st.session_state.messages) as response:
-        async for message in response.output.antworttext.stream_text(delta=True):
-            yield message
+
+        async for output in response.stream_output():
+            yield output
+
+    add_response_messages_to_history(response.new_messages())
+
+async def run_context_agent_with_streaming(userinput):
+    agent_input = AssignResponseInput(
+        frage=organizing_questions[st.session_state.o_question_index],
+        nutzereingabe=userinput,
+        antwortoptionen=organzing_response_text_options[st.session_state.o_question_index],
+        naechste_frage=organizing_questions[st.session_state.o_question_index + 1]
+    )
+
+    async with assign_user_input(agent_input, st.session_state.messages) as response:
+        print("response")
+        print(response.stream_output())
+        async for output in response.stream_output():
+            print(output)
+            yield output
 
     add_response_messages_to_history(response.new_messages())
 
@@ -82,6 +115,7 @@ async def run_retrieval_agent_with_streaming(user_input):
 
     # Add the new messages to the chat history (including tool calls and responses)
     st.session_state.messages.extend(result.new_messages())
+
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -105,47 +139,45 @@ async def main():
     if "chat_state" not in st.session_state:
         st.session_state.chat_state = ChatState.WELCOME
 
-    if "question_counter" not in st.session_state:
-        st.session_state.question_counter = 0
+    if "o_question_index" not in st.session_state:
+        st.session_state.o_question_index = 0
 
-    if "stream_text" not in st.session_state:
-        st.session_state.stream_text = True
+    if "simulation_started" not in st.session_state:
+        st.session_state.simulation_started = False
         # Display all messages from the conversation so far
     # Each message is either a ModelRequest or ModelResponse.
     # We iterate over their parts to decide how to display them.
     for msg in st.session_state.messages:
         if isinstance(msg, ModelRequest) or isinstance(msg, ModelResponse):
             for part in msg.parts:
+                print("Parts")
+                print(part)
                 display_message_part(part)
 
-    print(st.session_state.chat_state)
     if st.session_state.chat_state == ChatState.WELCOME:
         with st.chat_message("assistant"):
             placeholder = st.empty()
             full = ""
+            output_string = ""
+            stream_antworttext = True
 
             async for chunk in run_welcome_agent_with_streaming():
-                matches = re.findall(r'"antworttext"\s*:\s"*(.*)', chunk, re.DOTALL)
-                simulation_started = re.findall(r'"simulation_gestartet"\s*:\s*(true|false)', chunk)
-
-                if matches and not simulation_started:
-                    text = matches[0]
-
-                    if '",' in matches[0]:
-                        text = text.split('",')[0]
-
-                    if text.endswith('\\'):
-                        text = text.rstrip("\\")
-
-                    text = bytes(text, "utf-8").decode("unicode_escape")
-                    text = text.encode("latin1").decode("utf-8")
-                    full = text
+                output_string = chunk
+                if stream_antworttext:
+                    full = extract_assistant_response_text_from_output(chunk)
                     placeholder.markdown(full + "▌")
 
+                # Stoppe das Streaming, sobald der Text abgeschlossen ist
+                if '",' in chunk:
+                    stream_antworttext = False
+
             placeholder.markdown(full)
+            store_output_information(output_string)
+
         st.session_state.chat_state = ChatState.START_SIMULATION
 
-
+    if st.session_state.simulation_started:
+        st.session_state.chat_state = ChatState.GET_CONTEXT_INFO
     # Chat input for the user
     user_input = st.chat_input("What do you want to know?")
 
@@ -161,22 +193,32 @@ async def main():
             print('UserInput')
 
             message_placeholder = st.empty()
-            full_response = ""
+            full = ""
+            output_string = ""
+            stream_antworttext = True
 
             # Properly consume the async generator with async for
             print(st.session_state.chat_state)
             if st.session_state.chat_state == ChatState.START_SIMULATION:
-                print("richtig")
                 generator = run_simulation_agent_with_streaming(user_input, organizing_questions[0])
+            elif st.session_state.chat_state == ChatState.GET_CONTEXT_INFO:
+                generator = run_context_agent_with_streaming(user_input)
             else:
-                generator = None
+                raise ValueError('Invalid chat state')
 
-            async for message in generator:
-                full_response += message
-                message_placeholder.markdown(full_response + "▌")
+            async for chunk in generator:
+                output_string = chunk
+                print(chunk)
+                if stream_antworttext:
+                    full = extract_assistant_response_text_from_output(chunk)
+                    message_placeholder.markdown(full + "▌")
+                if '",' in chunk:
+                    stream_antworttext = False
 
-            # Final response without the cursor
-            message_placeholder.markdown(full_response)
+            message_placeholder.markdown(full)
+            print("assistant output")
+            print(output_string)
+            store_output_information(output_string)
 
 if __name__ == "__main__":
     asyncio.run(main())

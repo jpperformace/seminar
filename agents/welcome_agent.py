@@ -8,6 +8,7 @@ import os
 from audit_process.organizing import organizing_summary
 from audit_process.understanding import understanding_summary
 
+#TODO: Output
 class WelcomeInput(BaseModel):
     antworttext: str
     simulation_gestartet: bool
@@ -46,7 +47,7 @@ def get_welcome_message(phase:str):
 
     return welcome_agent.run_stream(user_prompt=prompt)
 
-def start_simulation(nutzereingabe:str, frage:str, nachtrichtenverlauf):
+def start_simulation(nutzereingabe:str, frage:str, nachrichtenverlauf):
 
     prompt = (
         f"Der Nutzer schrieb: '{nutzereingabe}'.\n"
@@ -55,4 +56,4 @@ def start_simulation(nutzereingabe:str, frage:str, nachtrichtenverlauf):
         f"Falls nicht, sage nur, dass die Simulation noch nicht gestartet wurde und frage nochmal ob sie gestartet werden soll. "
         f"Gib deine Nachricht in 'antworttext' zurück und setzte 'simulation_gestartet' False. ")
 
-    return welcome_agent.run_stream(user_prompt=prompt, message_history=nachtrichtenverlauf)
+    return welcome_agent.run_stream(user_prompt=prompt, message_history=nachrichtenverlauf)

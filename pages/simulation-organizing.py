@@ -7,7 +7,7 @@ from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart, Te
 import asyncio
 
 from agents.agent_loader import get_agent
-from agents.context_agent import AssignResponseInput, assign_user_input
+from agents.context_agent_alt import AssignResponseInput, assign_user_input
 from agents.rating_agent import evaluate_phase, BewertungEingabe
 from agents.retrieval_agent import chat_agent
 from audit_process.general import response_options_UX_experience, response_options_expert, get_method_condition, \

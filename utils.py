@@ -2,6 +2,7 @@
 
 import os
 import pathlib
+import re
 from typing import List, Dict, Any, Optional
 
 import chromadb
@@ -154,3 +155,24 @@ def format_results_as_context(query_results: Dict[str, Any]) -> str:
         context += f"Content: {doc}\n\n"
     
     return context
+
+def extract_assistant_response_text_from_output(chunk: str) -> str | None:
+    """
+    Extrahiert den Antworttext aus einem Agenten-Stream.
+    """
+    matches = re.findall(r'"antworttext"\s*:\s"*(.*)', chunk, re.DOTALL)
+    if len(matches) > 1:
+        raise ValueError("Agent output does not match defined pattern.")
+    if matches:
+        text = matches[0]
+        # Split bei Komma-Anführungszeichen, um nur den Antworttext zu erhalten
+        text_chunks = text.split('",')
+        assistant_message = text_chunks[0]
+        # Fixe Escapes die unvollstaendig abgeschnitten wurden
+        if assistant_message.endswith('\\'):
+            assistant_message = assistant_message.rstrip("\\")
+        # Unicode-Latin1 Fix
+        assistant_message = bytes(assistant_message, "utf-8").decode("unicode_escape")
+        assistant_message = assistant_message.encode("latin1").decode("utf-8")
+        return assistant_message
+    return ""

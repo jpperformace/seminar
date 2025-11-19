@@ -8,11 +8,10 @@ class AssignResponseInput(BaseModel):
     frage: str
     nutzereingabe: str
     antwortoptionen: List[str]
-    naechste_frage: str
 
 class AssignResponseOutput(BaseModel):
-    antworttext: str
-    zugeordnete_antwort: Optional[str]
+    assigned_response: Optional[str]
+    error_message: Optional[str] = None
 
 response_agent = Agent(
     os.getenv("MODEL_CHOICE", "gpt-4.1-mini"),
@@ -21,11 +20,10 @@ response_agent = Agent(
         "Du bekommst eine Frage, eine Nutzereingabe und eine Liste von Antwortoptionen.\n\n"
         "Ordne die Nutzereingabe **genau einer** der Aussagen aus der Liste zu, die **semantisch am besten passt**.\n"
         "Berücksichtige auch **ähnliche Bedeutungen** oder **abweichende Formulierungen**, die das Gleiche meinen.\n\n"
-        "Gib im Feld `zugeordnete_antwort` **exakt** den Text der zutreffenden Aussage aus der Liste zurück.\n"
-        "Falls eine eindeutige Zuordnung möglich ist, versuche natürlich auf die nächste Frage überzuleiten und frage die Frage, "
-        "Falls keine eindeutige Zuordnung möglich ist, gib `null` zurück und fülle das Feld `antworttext` mit "
+        "Gib im Feld `assigned_response` **exakt** den Text der zutreffenden Aussage aus der Liste zurück.\n"
+        "Falls keine eindeutige Zuordnung möglich ist, gib `null` zurück und fülle das Feld `error_message` mit "
         "einer hilfreichen Nachricht und Hinweisen pro Antwortobtionen, damit der Nutzer eine bessere Aussage treffen kann.\n\n"
-        "Sprich in `antworttext` den Nutzer direkt an, gehe auf sein Bedürfniss ein und erkläre in einfachen Worten, was noch fehlt, und hilf ihm, "
+        "Sprich in `error_message` den Nutzer direkt an, gehe auf sein Bedürfniss ein und erkläre in einfachen Worten, was noch fehlt, und hilf ihm, "
         "seine Antwort zu konkretisieren. Verwende dabei einen natürlichen, flüssigen Tonfall.\n\n"
         "### Beispiele für die Zuordnung:\n"
         "**Frage:** Können am Entwicklungsprozess des digitalen Produkts / der Dienstleistung beteiligte Mitarbeitende Usability-Qualifikationen nachweisen?\n"
@@ -45,20 +43,17 @@ response_agent = Agent(
     )
     )
 
-def assign_user_input(eingabe: AssignResponseInput, nachrichtenverlauf):
+async def assign_user_input(eingabe: AssignResponseInput):
     prompt = (
         "Du bekommst eine Frage, eine Nutzereingabe und eine Liste von Antwortoptionen."
         "Gib immer eine Antwort zurück, die am besten passt."
         "Ordnet die Nutzereingabe einer semantisch/inhaltlich passenden Antwortoption zu."
         "Wenn wirklich keine Antwort zuzuordnen ist gib Wert None zurück. Kein String!."
-        "Zusätzlich erhältst du eine weitere Frage. Diese sollst du stellen, wenn du die Antwortoption zuordnen konntest. "
-        "Versuche die Frage möglichst sinnvoll und natürlich in den Chatverlauf einzubinden."
     )
     prompt += (
         f"Frage: {eingabe.frage}\n"
         f"Nutzereingabe: {eingabe.nutzereingabe}\n"
         f"Antwortoptionen: {eingabe.antwortoptionen}\n"
-        f"Die nächste Frage, die du stellen sollst, wenn die Antwort zugeordenet wurde, lautet: {eingabe.naechste_frage}"
     )
 
-    return response_agent.run_stream(user_prompt=prompt, message_history=nachrichtenverlauf)
+    return await response_agent.run(user_prompt=prompt)
