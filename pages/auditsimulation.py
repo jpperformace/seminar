@@ -2,14 +2,16 @@ import json
 import re
 from enum import Enum, auto
 
+from docutils.nodes import Part
 from dotenv import load_dotenv
 import streamlit as st
 import asyncio
 
+from pydantic_ai import TextPart
 # Import all the message part classes
 from pydantic_ai.messages import (
     ModelRequest,
-    ModelResponse
+    ModelResponse, ToolCallPart, UserPromptPart
 )
 
 from agents.agent_loader import get_agent
@@ -48,18 +50,33 @@ def display_message_part(part):
     # text
     elif part.part_kind == 'text':
         with st.chat_message("assistant"):
-            try:
-                output_data = json.loads(part.content)
-            except json.JSONDecodeError as e:
-                st.error(f"Fehler beim Parsen des Agenten-Outputs: {e}")
-                return
-            st.markdown(output_data['antworttext'])
+            st.markdown(part.content)
+
 
 def add_response_messages_to_history(messages):
+    print("store messages")
+    print(st.session_state.messages)
     print(messages)
     for msg in messages:
         if isinstance(msg, ModelResponse):
+            if isinstance(msg, ModelResponse):
+                for part in msg.parts:
+                    if isinstance(part, ToolCallPart):
+                        output = part.args_as_dict()
+                        response_text = output.get("antworttext", "")
+
+                        text_part = TextPart(content=response_text)
+                        print(text_part)
+                        # ModelResponse mit einem Text-Part
+                        model_response = ModelResponse(
+                            parts=[text_part]
+                        )
+
+                        st.session_state.messages.append(model_response)
+                        return
             st.session_state.messages.append(msg)
+    print("history after storing")
+    print(st.session_state.messages)
 
 def store_output_information(output_string):
     try:
@@ -76,7 +93,7 @@ async def run_welcome_agent_with_streaming():
         async for output in response.stream_output():
             yield output
 
-    # Add the new messages to the chat history (including tool calls and responses)
+    print("add new messages")
     add_response_messages_to_history(response.new_messages())
 
 
@@ -164,7 +181,8 @@ async def main():
             async for chunk in run_welcome_agent_with_streaming():
                 output_string = chunk
                 if stream_antworttext:
-                    full = extract_assistant_response_text_from_output(chunk)
+                    print(chunk)
+                    full = chunk.antworttext
                     placeholder.markdown(full + "▌")
 
                 # Stoppe das Streaming, sobald der Text abgeschlossen ist
@@ -172,7 +190,7 @@ async def main():
                     stream_antworttext = False
 
             placeholder.markdown(full)
-            store_output_information(output_string)
+            st.session_state.simulation_started = output_string.simulation_gestartet
 
         st.session_state.chat_state = ChatState.START_SIMULATION
 
@@ -185,6 +203,8 @@ async def main():
         # Display user prompt in the UI
         with st.chat_message("user"):
             st.markdown(user_input)
+            st.session_state.messages.extend(
+                [ModelRequest(parts=[UserPromptPart(content=user_input)])])
 
         # Display the assistant's partial response while streaming
 
@@ -210,15 +230,16 @@ async def main():
                 output_string = chunk
                 print(chunk)
                 if stream_antworttext:
-                    full = extract_assistant_response_text_from_output(chunk)
+                    full = chunk.antworttext
                     message_placeholder.markdown(full + "▌")
                 if '",' in chunk:
                     stream_antworttext = False
 
             message_placeholder.markdown(full)
-            print("assistant output")
-            print(output_string)
-            store_output_information(output_string)
+
+            if st.session_state.chat_state == ChatState.START_SIMULATION:
+                st.session_state.simulation_started = output_string.simulation_gestartet
+
 
 if __name__ == "__main__":
     asyncio.run(main())

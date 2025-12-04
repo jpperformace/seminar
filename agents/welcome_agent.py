@@ -8,14 +8,14 @@ import os
 from audit_process.organizing import organizing_summary
 from audit_process.understanding import understanding_summary
 
-#TODO: Output
-class WelcomeInput(BaseModel):
-    antworttext: str
+class WelcomeOutput(BaseModel):
     simulation_gestartet: bool
+    antworttext: str
 
 # Agent, der die Willkommensnachricht **über das Modell** generiert
 welcome_agent = Agent(
     os.getenv("MODEL_CHOICE", "gpt-4.1-mini"),
+    output_type=WelcomeOutput,
     system_prompt=(
         f"Du bist ein KI-Assistent, der Nutzer in ein Audit zur nutzerzentrierten Entwicklung einführt. "
         f"Erzeuge eine freundliche, klare und einladende Willkommensnachricht, die erklärt: \n"
@@ -43,7 +43,7 @@ def get_welcome_message(phase:str):
               f"Weise anschließend drauf hin, dass man bei Unsicherheiten zu einzelnen Fragen/Kriterien immer Rückfragen stellen kann und nach der Auditbeurteilung,"
               f"man die möglichkeit hat Fragen zu stellen oder Informationen zu vorgeschlagenen Verbesserungen wie möglich Methoden und KI-Tools erhalten kann. "
               f"Frage, ob er die Simulation starten möchte. "
-              f"Gib deine Nachricht in 'antworttext' zurück und setzte 'simulation_gestartet' False.")
+              f"Setzte 'simulation_gestartet' False. Gib deine Nachricht in 'antworttext' zurück")
 
     return welcome_agent.run_stream(user_prompt=prompt)
 
