@@ -15,7 +15,8 @@ from pydantic_ai.messages import (
 )
 
 from agents.agent_loader import get_agent
-from agents.context_agent import assign_user_input, AssignResponseInput
+from agents.context_agent import assign_user_input, AssignResponseInput, assign_user_input_to_response_option, \
+    ask_next_question, AssignUserResponseInput, NextResponseInput, help_user_to_response
 from agents.retrieval_agent import chat_agent
 from agents.welcome_agent import get_welcome_message, start_simulation
 from audit_process.general import Phasen
@@ -27,6 +28,7 @@ class ChatState(str, Enum):
     WELCOME = "Welcome"
     START_SIMULATION = "Start Simulation"
     GET_CONTEXT_INFO = "Get Context Info"
+    CREATE_REPORT = "Create Report"
     FOLLOW_UP = "Follow-Up"
 
 load_dotenv()
@@ -66,7 +68,6 @@ def add_response_messages_to_history(messages):
                         response_text = output.get("antworttext", "")
 
                         text_part = TextPart(content=response_text)
-                        print(text_part)
                         # ModelResponse mit einem Text-Part
                         model_response = ModelResponse(
                             parts=[text_part]
@@ -75,8 +76,6 @@ def add_response_messages_to_history(messages):
                         st.session_state.messages.append(model_response)
                         return
             st.session_state.messages.append(msg)
-    print("history after storing")
-    print(st.session_state.messages)
 
 def store_output_information(output_string):
     try:
@@ -93,7 +92,6 @@ async def run_welcome_agent_with_streaming():
         async for output in response.stream_output():
             yield output
 
-    print("add new messages")
     add_response_messages_to_history(response.new_messages())
 
 
@@ -107,21 +105,38 @@ async def run_simulation_agent_with_streaming(userinput, frage):
     add_response_messages_to_history(response.new_messages())
 
 async def run_context_agent_with_streaming(userinput):
-    agent_input = AssignResponseInput(
+
+    help_input = AssignUserResponseInput(
         frage=organizing_questions[st.session_state.o_question_index],
         nutzereingabe=userinput,
-        antwortoptionen=organzing_response_text_options[st.session_state.o_question_index],
+        antwortoptionen=organzing_response_text_options[st.session_state.o_question_index]
+    )
+
+    next_input = NextResponseInput(
+        frage=organizing_questions[st.session_state.o_question_index],
+        nutzereingabe=userinput,
         naechste_frage=organizing_questions[st.session_state.o_question_index + 1]
     )
 
-    async with assign_user_input(agent_input, st.session_state.messages) as response:
-        print("response")
-        print(response.stream_output())
-        async for output in response.stream_output():
-            print(output)
-            yield output
+    agent_response = await assign_user_input_to_response_option(help_input)
+    print("Ordne Antwort nur zu....")
+    print(agent_response)
+    print(agent_response.output.zugeordnete_antwort)
+
+    if agent_response.output.zugeordnete_antwort != None:
+        async with ask_next_question(next_input, st.session_state.messages) as response:
+            async for output in response.stream_output():
+                yield output
+            if st.session_state.o_question_index < len(organizing_questions):
+                st.session_state.o_question_index += 1
+
+    else:
+        async with help_user_to_response(help_input, st.session_state.messages) as response:
+            async for output in response.stream_output():
+                yield output
 
     add_response_messages_to_history(response.new_messages())
+
 
 async def run_retrieval_agent_with_streaming(user_input):
     async with chat_agent.run_stream(
@@ -167,8 +182,6 @@ async def main():
     for msg in st.session_state.messages:
         if isinstance(msg, ModelRequest) or isinstance(msg, ModelResponse):
             for part in msg.parts:
-                print("Parts")
-                print(part)
                 display_message_part(part)
 
     if st.session_state.chat_state == ChatState.WELCOME:
@@ -181,7 +194,6 @@ async def main():
             async for chunk in run_welcome_agent_with_streaming():
                 output_string = chunk
                 if stream_antworttext:
-                    print(chunk)
                     full = chunk.antworttext
                     placeholder.markdown(full + "▌")
 
@@ -210,8 +222,6 @@ async def main():
 
         with st.chat_message("assistant"):
             # Create a placeholder for the streaming text
-            print('UserInput')
-
             message_placeholder = st.empty()
             full = ""
             output_string = ""
@@ -228,7 +238,7 @@ async def main():
 
             async for chunk in generator:
                 output_string = chunk
-                print(chunk)
+
                 if stream_antworttext:
                     full = chunk.antworttext
                     message_placeholder.markdown(full + "▌")
@@ -236,9 +246,19 @@ async def main():
                     stream_antworttext = False
 
             message_placeholder.markdown(full)
+            print("Output:")
+            print(output_string)
+
+            if st.session_state.o_question_index < len(organizing_questions):
+                st.session_state.chat_state = ChatState.CREATE_REPORT
 
             if st.session_state.chat_state == ChatState.START_SIMULATION:
                 st.session_state.simulation_started = output_string.simulation_gestartet
+
+                if st.session_state.simulation_started:
+                    print("Start context inquery")
+                    st.session_state.chat_state = ChatState.GET_CONTEXT_INFO
+
 
 
 if __name__ == "__main__":
