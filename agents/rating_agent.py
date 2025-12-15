@@ -25,6 +25,9 @@ class BewertungAusgabe(BaseModel):
     methoden:str
     ki_tools: str
 
+class ResponseTextOutput(BaseModel):
+    antworttext: str
+
 quan_rat_agent = Agent(
     os.getenv("MODEL_CHOICE", "gpt-4.1-mini"),
     output_type=BewertungAusgabe,
@@ -56,6 +59,32 @@ quan_rat_agent = Agent(
         "bei guter Bewertung genügen knappe Hinweise. "
         "Der Fokus liegt insgesamt auf konstruktiven, zielgerichteten Vorschlägen. "
         "Gib die Inhalte als durchgehenden Fließtext ohne Aufzählungen aus."
+    )
+)
+
+rating_agent = Agent(
+    os.getenv("MODEL_CHOICE", "gpt-4.1-mini"),
+    output_type=ResponseTextOutput,
+    system_prompt=(
+        "Du bist ein hilfreicher Assistent zur Reifegradbewertung in Audits zur nutzerzentrierten Entwicklung. "
+        "Du gibst auf Basis der vier übergebenen Antworten einen einzigen zusammenhängenden Gesamtbewertungstext zurück, "
+        "der alle relevanten Inhalte vereint: eine subjektive Gesamteinschätzung, eine transparente kausale Begründung, "
+        "übergeordnete Verbesserungspotenziale sowie Empfehlungen zu Methoden und KI-Tools inklusive kurzer Erläuterung "
+        "der jeweils geeignetsten Option und kontrastiver Begründung für weniger passende Alternativen. "
+        "Die Darstellung erfolgt als kompakter Fließtext ohne Aufzählungen. "
+        "Du nennst keine Scores, sondern argumentierst qualitativ anhand der Bewertungsmetrik. "
+        "Die subjektive Natur deiner Einschätzung muss klar benannt werden, ebenso der Hinweis, dass eine verbindliche "
+        "Bewertung immer durch einen Auditor erfolgt und dieser bei Unstimmigkeiten hinzugezogen werden sollte. "
+        "Die kausale Begründung erklärt nachvollziehbar, wie die Einschätzung aus den übergebenen Informationen "
+        "abgeleitet wurde und endet mit einem einzelnen kontrafaktischen Satz, der beschreibt, was sich inhaltlich hätte "
+        "ändern müssen, damit die Bewertung besser ausgefallen wäre (ohne Zahlen oder konkrete Punktwerte). "
+        "Die Verbesserungspotenziale werden auf Zielebene formuliert, ohne konkrete Maßnahmen zu beschreiben; "
+        "konkrete Empfehlungen erscheinen ausschließlich in kurzen Erläuterungen in den Abschnitten zu Methoden und KI-Tools. "
+        "Die Ausführlichkeit der Empfehlungen richtet sich nach der Bewertung: "
+        "Je schwächer die Gesamteinschätzung, desto detaillierter die Beschreibung. "
+        "Schließe den Gesamtbewertungstext immer mit dem Hinweis, dass Rückfragen zur Bewertung oder zu Methoden "
+        "und KI-Tools der Phase gestellt werden können."
+        "Versuche alle Teile im Bewertungstext kurz und verständlich zu benennen"
     )
 )
 
@@ -108,3 +137,47 @@ async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, p
     response = await quan_rat_agent.run(user_prompt=prompt)
 
     return response
+
+
+def evaluate_phase_and_get_response(nutzereingabe:list[str], antworten: BewertungEingabe, phase: str, ux_erfahrung: str, methoden:str, ki_tools:str, evaluation_metrik:str):
+    prompt = (
+        f"Bewerte die Phase '{phase}' im Audit zur nutzerzentrierten Entwicklung anhand folgender "
+        "vordefinierter Bewertungsschema für die gegebenen Antworten:\n\n"
+        f"Methoden: {methoden}\n"
+        f"KI-Tools: {ki_tools}\n"
+        f"Bewertungsmetrik: {evaluation_metrik}\n\n"
+    )
+    for i, antwort in enumerate(antworten.antwortoptionen, 0):
+        print(nutzereingabe[i])
+        prompt += (
+            f"Antwort {i}:\n"
+            f"Text: {antwort.text}\n"
+            f"Eingabe: {nutzereingabe[i]}\n"
+            f"Hinweis: {antwort.hinweis}\n"
+            f"Punkte: {antwort.punkte}\n"
+            f"Bewertung: {antwort.bewertung}\n"
+            f"Begründung: {antwort.begruendung}\n"
+            f"Verbesserungspotential: {antwort.verbesserungpotential}"
+        )
+
+    prompt += (
+        f"Gib eine **Gesamtbewertungtext** der Phase **{phase}** ab, mit einer **kausalen Begründung**, "
+        "die kompakt, erklärend und selektiv formuliert ist. Die Bewertung soll auf den Einzelbewertungen beruhen "
+        "und klar aufzeigen, an welchen Stellen noch Schwächen bestehen. "
+        "Fasse alle Informationen in einer zusammenhängenden Einschätzung zusammen, ohne die einzelnen Antworten explizit aufzuführen.\n"
+
+    )
+
+    prompt += (
+        f"Je nach UX-Erfahrung des Unternehmens ({ux_erfahrung}) soll der Fokus der Erklärung sowie der Detailgrad der Begründung angepasst werden. "
+        "Dabei orientiert sich die Gestaltung der Erklärung an den Konzepten von Ye et al.\n\n"
+        "- Bei **wenig Erfahrung**:\n"
+        "  - **Terminology**: Fachbegriffe (z.B. Methoden) sollen verständlich erklärt werden.\n"
+        "  - **Justification**: Die Begründung soll ausführlich darlegen, *warum* eine bestimmte Bewertung vergeben wurde.\n"
+        "  - **Traceability** ist in dieser Gruppe weniger vorrangig.\n\n"
+        "- Bei **erfahreneren Unternehmen**:\n"
+        "  - **Terminology**: Kann reduziert werden – Fachbegriffe müssen nicht mehr ausführlich erläutert werden.\n"
+        "  - **Justification**: Die Begründung soll weiterhin klar erkennbar machen, *warum* eine Bewertung erfolgt ist – jedoch kurz, prägnant und fachlich fundiert.\n"
+        "  - **Traceability**: Es soll transparent sein, *welche* Kriterien oder Beobachtungen zum Ergebnis geführt haben.\n")
+
+    return rating_agent.run_stream(user_prompt=prompt)

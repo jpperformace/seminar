@@ -18,7 +18,7 @@ class AssignUserResponseInput(BaseModel):
 class NextResponseInput(BaseModel):
     frage: str
     nutzereingabe: str
-    naechste_frage: str
+    naechste_frage: Optional[str] = None
 
 class AssignUserResponseOutput(BaseModel):
     zugeordnete_antwort: Optional[str]
@@ -123,7 +123,7 @@ def assign_user_input(eingabe: AssignResponseInput, nachrichtenverlauf):
 
     return response_agent.run_stream(user_prompt=prompt, message_history=nachrichtenverlauf)
 
-async def assign_user_input_to_response_option(eingabe: AssignResponseInput):
+async def assign_user_input_to_response_option(eingabe: AssignUserResponseInput):
     prompt = (
         "Du bekommst eine Frage, eine Nutzereingabe und eine Liste von Antwortoptionen."
         "Gib immer genau eine Antwort zurück, die am besten passt."
@@ -164,7 +164,7 @@ def ask_next_question(eingabe: NextResponseInput, nachrichtenverlauf):
     prompt += (
         f"Frage: {eingabe.frage}\n"
         f"Nutzereingabe: {eingabe.nutzereingabe}\n"
-        f"Nächste Frage: {eingabe.naechste_frage}\n"
+        f"Nächste Frage lautet: {eingabe.naechste_frage}\n"
     )
 
     return response_text_agent.run_stream(user_prompt=prompt, message_history=nachrichtenverlauf)
