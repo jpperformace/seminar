@@ -23,7 +23,7 @@ from agents.welcome_agent import get_welcome_message, start_simulation
 from audit_process.general import Phasen, get_no_expert_condition, get_method_search_string, get_method_user_input, \
     get_ai_tool_condition, get_ai_tool_search_query, get_ai_tool_user_input
 from audit_process.organizing import organizing_questions, organzing_response_text_options, organizing_response_q1, \
-    organizing_response_q2, organizing_response_q3, organzing_rating_metrik
+    organizing_response_q2, organizing_response_q3, organzing_rating_metrik, organizing_response_q4, organizing_examples
 from utils import extract_assistant_response_text_from_output
 
 
@@ -147,23 +147,28 @@ async def run_retrieval_agent_with_streaming(user_input, use_history=True, add_m
     if add_message:
         st.session_state.org_chat_messages.extend(result.new_messages())
 
-async def run_context_agent_with_streaming(userinput):
-
-    help_input = AssignUserResponseInput(
+def get_agent_input(userinput):
+    return AssignUserResponseInput(
         frage=organizing_questions[st.session_state.o_question_index],
         nutzereingabe=userinput,
-        antwortoptionen=organzing_response_text_options[st.session_state.o_question_index]
+        antwortoptionen=organzing_response_text_options[st.session_state.o_question_index],
+        example=organizing_examples[st.session_state.o_question_index]
     )
 
-    agent_response = await assign_user_input_to_response_option(help_input)
+async def assign_response(userinput):
+    return await assign_user_input_to_response_option(get_agent_input(userinput))
+
+async def run_context_agent_with_streaming(userinput, assign_agent_response):
+
+    help_input = get_agent_input(userinput)
+
     next_question = 1
 
-    if agent_response.output.zugeordnete_antwort == organizing_response_q1[1].text:
+    if assign_agent_response.output.zugeordnete_antwort == organizing_response_q1[1].text:
         next_question = 2
         st.session_state.have_ux_expert = True
 
-
-    if agent_response.output.zugeordnete_antwort is None:
+    if assign_agent_response.output.zugeordnete_antwort is None:
         async with help_user_to_response(help_input, st.session_state.messages) as response:
             async for output in response.stream_output():
                 yield output
@@ -179,37 +184,40 @@ async def run_context_agent_with_streaming(userinput):
                 yield output
 
         if st.session_state.o_question_index == 0:
-            st.session_state.ux_experience = agent_response.output.zugeordnete_antwort
-        elif st.session_state.o_question_index == 2:
-            st.session_state.have_ux_expert = agent_response.output.zugeordnete_antwort
+            st.session_state.ux_experience = assign_agent_response.output.zugeordnete_antwort
+        elif st.session_state.o_question_index == 1:
+            st.session_state.company_size = assign_agent_response.output.zugeordnete_antwort
+        elif st.session_state.o_question_index == 3:
+            st.session_state.have_ux_expert = assign_agent_response.output.zugeordnete_antwort
         else:
-            st.session_state.assigned_responses.append(agent_response.output.zugeordnete_antwort)
+            st.session_state.assigned_responses.append(assign_agent_response.output.zugeordnete_antwort)
         st.session_state.o_question_index += next_question
 
     else:
-        st.session_state.assigned_responses.append(agent_response.output.zugeordnete_antwort)
-        print("responses")
-        print(st.session_state.assigned_responses)
-        ai_tools = await  get_ai_tool()
-        methods = await get_methods()
-        a1 = next(a for a in organizing_response_q1 if a.text == st.session_state.assigned_responses[0])
-        a2 = next(a for a in organizing_response_q2 if a.text == st.session_state.assigned_responses[1])
-        a3 = next(a for a in organizing_response_q3 if a.text == st.session_state.assigned_responses[2])
-
-        async with evaluate_phase_and_get_response(
-            nutzereingabe=st.session_state.o_user_inputs,
-            antworten=BewertungEingabe(antwortoptionen=[a1, a2, a3]),
-            phase=Phasen.ORGANIZING.value,
-            ux_erfahrung=st.session_state.ux_experience,
-            methoden=methods, ki_tools=ai_tools, evaluation_metrik=organzing_rating_metrik
-        ) as response:
-            async for output in response.stream_output():
-                yield output
+        raise ValueError('Invalid chat state')
 
     add_response_messages_to_history(response.new_messages())
 
-    print("Antworten")
+async def run_report_generation_with_streaming(ai_tools, methods):
+    print("responses")
     print(st.session_state.assigned_responses)
+
+    a1 = next(a for a in organizing_response_q1 if a.text == st.session_state.assigned_responses[0])
+    a2 = next(a for a in organizing_response_q2 if a.text == st.session_state.assigned_responses[1])
+    a3 = next(a for a in organizing_response_q3 if a.text == st.session_state.assigned_responses[2])
+    a4 = next(a for a in organizing_response_q4 if a.text == st.session_state.assigned_responses[3])
+
+    async with evaluate_phase_and_get_response(
+        nutzereingabe=st.session_state.o_user_inputs,
+        antworten=BewertungEingabe(antwortoptionen=[a1, a2, a3, a4]),
+        phase=Phasen.ORGANIZING.value,
+        ux_erfahrung=st.session_state.ux_experience,
+        methoden=methods, ki_tools=ai_tools, evaluation_metrik=organzing_rating_metrik
+    ) as response:
+        async for output in response.stream_output():
+            yield output
+
+    add_response_messages_to_history(response.new_messages())
 
 
 
@@ -235,6 +243,9 @@ async def main():
 
     if "ux_experience" not in st.session_state:
         st.session_state.ux_experience = ''
+
+    if "company_size" not in st.session_state:
+        st.session_state.company_size = ''
 
     if "agent_deps" not in st.session_state:
         with st.spinner("Initialisiere Agent..."):
@@ -294,6 +305,19 @@ async def main():
             st.session_state.messages.extend(
                 [ModelRequest(parts=[UserPromptPart(content=user_input)])])
 
+        assign_agent_response = await assign_response(user_input)
+        print(st.session_state.o_question_index)
+        print(len(organizing_questions))
+
+        if assign_agent_response.output.zugeordnete_antwort and st.session_state.o_question_index == len(organizing_questions) - 1:
+            st.session_state.chat_state = ChatState.CREATE_REPORT
+            st.session_state.assigned_responses.append(assign_agent_response.output.zugeordnete_antwort)
+
+            with st.spinner("Die Bewertung wird jetzt ausgeführt das kann einige Zeit dauern."):
+                ai_tools = await  get_ai_tool()
+                methods = await get_methods()
+                print(ai_tools)
+                print(methods)
         # Display the assistant's partial response while streaming
 
         with st.chat_message("assistant"):
@@ -308,7 +332,9 @@ async def main():
             if st.session_state.chat_state == ChatState.START_SIMULATION:
                 generator = run_simulation_agent_with_streaming(user_input, organizing_questions[0])
             elif st.session_state.chat_state == ChatState.GET_CONTEXT_INFO:
-                generator = run_context_agent_with_streaming(user_input)
+                generator = run_context_agent_with_streaming(user_input, assign_agent_response)
+            elif st.session_state.chat_state == ChatState.CREATE_REPORT:
+                generator = run_report_generation_with_streaming(ai_tools, methods)
             else:
                 raise ValueError('Invalid chat state')
 
@@ -324,9 +350,6 @@ async def main():
             message_placeholder.markdown(full)
             print("Output:")
             print(output_string)
-
-            if st.session_state.o_question_index == len(organizing_questions):
-                st.session_state.chat_state = ChatState.CREATE_REPORT
 
             if st.session_state.chat_state == ChatState.START_SIMULATION:
                 st.session_state.simulation_started = output_string.simulation_gestartet

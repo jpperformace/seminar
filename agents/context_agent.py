@@ -14,6 +14,7 @@ class AssignUserResponseInput(BaseModel):
     frage: str
     nutzereingabe: str
     antwortoptionen: List[str]
+    example: Optional[str]
 
 class NextResponseInput(BaseModel):
     frage: str
@@ -90,12 +91,11 @@ help_response_agent = Agent(
     os.getenv("MODEL_CHOICE", "gpt-4.1-mini"),
     output_type=ResponseTextOutput,
     system_prompt=(
-        "Du bekommst eine Frage, eine Nutzereingabe und eine Liste von Antwortoptionen.\n\n"
-        "Die Antwort des Nutzers konnte keiner Antwortoption zugeordnet werden. "
-        "Gehe auf die Antwort des Nutzers ein. "
-        "Versuche zusätzlich ihm mehr Details über die Zuordnung von Antworten zu geben,"
-        "um dem Nutzer die Beantwortung der Frage zu erleichtern."
+        "Gehe auf die Eingabe des Nutzers ein.\n"
+        "Gib dem Nutzer kurz und verständlich zusätzliche Informationen oder Beispiele, damit er seine eigene Einschätzung klarer formulieren kann.\n"
+        "Gib auf keinen Fall feste Antwortoptionen vor!"
         "Versuche sinnvoll und verständlich den Nutzer zur erneuten Beantwortung der Frage zu bitten."
+        "Gib die Antwort in antworttext zurück"
     )
     )
 
@@ -141,17 +141,21 @@ async def assign_user_input_to_response_option(eingabe: AssignUserResponseInput)
 
 def help_user_to_response(eingabe: AssignUserResponseInput, nachrichtenverlauf):
     prompt = (
-        "Du bekommst eine Frage, eine Nutzereingabe und eine Liste von Antwortoptionen."
+        "Du bekommst eine Frage, eine Nutzereingabe und eine Liste von Antwortoptionen. "
+        "Gibt auf keinen Fall konkrete antwortoptionen zurrück wenn sie keine weiteren informatioenn bieten!"
         "Gib eine Nachricht zurück die auf die Nutzereingabe eingeht. "
         "Versuche weitere Details zu geben, die dem Nutzer bei der Beantwortung helfen könnten."
+        "Versuche kurz und verständlich zu antworten."
+        "Dazu bekommst du manchmal auch optionale Bespiele, die dir helfen sollen noch informativere Antworten zu geben. "
     )
     prompt += (
         f"Frage: {eingabe.frage}\n"
         f"Nutzereingabe: {eingabe.nutzereingabe}\n"
         f"Antwortoptionen: {eingabe.antwortoptionen}\n"
+        f"Bespiele: {eingabe.example}"
     )
 
-    return response_text_agent.run_stream(user_prompt=prompt, message_history=nachrichtenverlauf)
+    return help_response_agent.run_stream(user_prompt=prompt, message_history=nachrichtenverlauf)
 
 
 def ask_next_question(eingabe: NextResponseInput, nachrichtenverlauf):

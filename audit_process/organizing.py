@@ -1,15 +1,24 @@
 from agents.rating_agent import Antwortoption
-from audit_process.general import response_options_UX_experience, response_options_expert
+from audit_process.general import response_options_UX_experience, response_options_expert, response_options_company_size
 
 organizing_summary = """Die Phase Organisation umfasst alle organisatorischen Elemente, die sicherstellen, 
                       dass die Benutzererfahrung eine hohe Priorität im Unternehmen hat. Dazu gehören die 
                       Verankerung einer nutzerzentrierten Denkweise und das Vorhandensein von UX-Experten."""
 
 organizing_questions = ['Bitte schätzen Sie den Reifegrad Ihrer Organisation im Bereich nutzerzentrierte Entwicklung ein (von Einsteiger bis sehr erfahren).',
+             'Wie würden Sie die Größe Ihres Unternehmens beschreiben?',
              'Wer übernimmt in Ihrem Unternehmen Aufgaben im Bereich Usability und User Experience (UUX)?',
              'Gibt es ein UX-Experten in Ihrem Unternehmen?',
-             'Können am Entwickungsprozess des digitalen Produktes / der Dienstleistung beteiligte Mitarbeitende Usability-Qualitfikationen nachweisen?',
+             ' Wie sind Rollen und Verantwortlichkeiten im Bereich UX (inkl. Usability und Accessibility) in Ihrem Unternehmen organisiert, definiert und umgesetzt?',
+             'Können die jeweiligen Mitarbeitende Usability-Qualitfikationen nachweisen?',
              'Wie ist die interne Kommunikation und Zusammenarbeit in Bezug auf "Usability und User Experience" im Entwicklungsprozess strukturiert?']
+
+organizing_examples = [None, None, 'UX-Team, UX-Experte, andere Mitarbeiter wie Softwareentwickler', None, 'Produktmanager, Business Analyst, User Researcher, UX / UI Designer',
+                       'Aktuelle Lehrtätigkeit in Modulen wie Usability Engineering, Interface/Interaction Design, '
+                       'Software Engineering, HCI; Publikationen in relevanten Fachzeitschriften; '
+                       'Studienabschlüsse in Human-Centered Computing, Soziologie oder ähnlichen Fächern,'
+                       'Berufserfahrung und Fachkenntnisse in verschiedenen Technologien, Branchen und Prozessen,'
+                       'Zertifizierungen wie UXQCC Basic und Advanced sowie berufsbegleitende Zertifikate', None]
 
 organizing_response_q1 = [
         Antwortoption(
@@ -71,6 +80,55 @@ organizing_response_q1 = [
 ]
 
 organizing_response_q2 = [
+    Antwortoption(
+        text='Ja, klar definiert und umgesetzt',
+        punkte=2,
+        bewertung="Sehr gut",
+        begruendung=(
+            "Rollen und Verantwortlichkeiten im Bereich UX sind klar definiert, dokumentiert und "
+            "konkreten Personen oder Teams zugewiesen. Dedizierte und geteilte Rollen ermöglichen "
+            "einen wirksamen Know-how-Transfer zwischen Teams und tragen zu einer konsistenten "
+            "User Journey bei. Verantwortlichkeiten für Usability und Accessibility sind eindeutig geregelt."
+        ),
+        verbesserungpotential=(
+            "Weiter so – empfehlenswert ist eine regelmäßige Überprüfung der Rollenverteilung sowie "
+            "die Anpassung an organisatorische oder produktbezogene Veränderungen."
+        )
+    ),
+    Antwortoption(
+        text='Teilweise definiert',
+        punkte=1,
+        bewertung="Ausreichend – mit Schwächen",
+        begruendung=(
+            "Rollen und Verantwortlichkeiten im Bereich UX sind teilweise definiert, "
+            "jedoch nicht durchgängig klar zugewiesen oder einheitlich umgesetzt. "
+            "Einzelne UX-Aufgaben werden wahrgenommen, es fehlen jedoch klare Zuständigkeiten "
+            "oder eine konsistente Abstimmung zwischen den Teams."
+        ),
+        verbesserungpotential=(
+            "Klärung und Dokumentation der UX-Rollen sowie eindeutige Zuweisung von Verantwortlichkeiten. "
+            "Insbesondere sollten Zuständigkeiten für Usability und Accessibility klar benannt "
+            "und teamübergreifend abgestimmt werden."
+        )
+    ),
+    Antwortoption(
+        text='Nein, nicht definiert',
+        punkte=0,
+        bewertung="Ungenügend – nicht zertifizierungsfähig",
+        begruendung=(
+            "Es sind keine klar definierten Rollen und Verantwortlichkeiten im Bereich UX etabliert. "
+            "UX-, Usability- und Accessibility-Aufgaben werden unsystematisch oder nebenbei wahrgenommen, "
+            "was die konsistente Umsetzung nutzerzentrierter Entwicklung erheblich erschwert."
+        ),
+        verbesserungpotential=(
+            "Definition und Einführung klarer UX-Rollen (z. B. Product Manager, User Researcher, "
+            "UX/UI Designer) sowie Festlegung eindeutiger Verantwortlichkeiten. "
+            "Aufbau einer grundlegenden Organisationsstruktur für Human-Centered Design."
+        )
+    )
+]
+
+organizing_response_q3 = [
         Antwortoption(
             text='Ja, alle',
             punkte=2,
@@ -111,7 +169,7 @@ organizing_response_q2 = [
         )
 ]
 
-organizing_response_q3 = [
+organizing_response_q4 = [
         Antwortoption(
             text='Es gibt regelmäßige Meetings ausschließlich zu UUX-Themen mit allen Beteiligten.',
             punkte=3,
@@ -168,7 +226,8 @@ organizing_response_q3 = [
 all_response_lists = [
     organizing_response_q1,
     organizing_response_q2,
-    organizing_response_q3
+    organizing_response_q3,
+    organizing_response_q4
 ]
 
 organzing_rating_metrik = alternative_bewertung_organizing = [
@@ -179,8 +238,10 @@ organzing_rating_metrik = alternative_bewertung_organizing = [
 
 organzing_response_text_options = [
     response_options_UX_experience,
+    response_options_company_size,
     [option.text for option in organizing_response_q1],
     response_options_expert,
     [option.text for option in organizing_response_q2],
-    [option.text for option in organizing_response_q3]
+    [option.text for option in organizing_response_q3],
+    [option.text for option in organizing_response_q4]
 ]

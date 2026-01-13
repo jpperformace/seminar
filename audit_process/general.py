@@ -16,6 +16,12 @@ response_options_UX_experience = ['Einsteiger – Erste Berührungspunkte, keine
 
 response_options_expert = ['True', 'False']
 
+response_options_company_size = ['Startup (wenige Mitarbeitende, meist unter 20, stark wachstumsorientiert)',
+                                 'Kleine Unternehmen (bis ca. 50 Mitarbeitende)',
+                                 'mittlere / mittelständische Unternehmen (ca. 50–500)',
+                                 'Große Unternehmen (mehr als 500)',
+                                 'Konzern (mehrere tausend Mitarbeitende, oft international tätig)']
+
 
 ##################### RAG INPUT
 
