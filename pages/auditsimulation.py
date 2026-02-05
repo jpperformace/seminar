@@ -211,6 +211,7 @@ async def run_report_generation_with_streaming(ai_tools, methods):
         nutzereingabe=st.session_state.o_user_inputs,
         antworten=BewertungEingabe(antwortoptionen=[a1, a2, a3, a4]),
         phase=Phasen.ORGANIZING.value,
+        groesse=st.session_state.company_size,
         ux_erfahrung=st.session_state.ux_experience,
         methoden=methods, ki_tools=ai_tools, evaluation_metrik=organzing_rating_metrik
     ) as response:

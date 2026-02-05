@@ -71,7 +71,7 @@ rating_agent = Agent(
         "der alle relevanten Inhalte vereint: eine subjektive Gesamteinschätzung, eine transparente kausale Begründung, "
         "übergeordnete Verbesserungspotenziale sowie Empfehlungen zu Methoden und KI-Tools inklusive kurzer Erläuterung "
         "der jeweils geeignetsten Option und kontrastiver Begründung für weniger passende Alternativen. "
-        "Die Darstellung erfolgt als kompakter Fließtext ohne Aufzählungen. "
+        "Die Darstellung erfolgt als kompakter Text ohne Aufzählungen. Füge eine Überschrift hinzu. Stukturier den Text mi Zeilenumbrüchen übersichtlich. "
         "Du nennst keine Scores, sondern argumentierst qualitativ anhand der Bewertungsmetrik. "
         "Die subjektive Natur deiner Einschätzung muss klar benannt werden, ebenso der Hinweis, dass eine verbindliche "
         "Bewertung immer durch einen Auditor erfolgt und dieser bei Unstimmigkeiten hinzugezogen werden sollte. "
@@ -139,7 +139,7 @@ async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, p
     return response
 
 
-def evaluate_phase_and_get_response(nutzereingabe:list[str], antworten: BewertungEingabe, phase: str, ux_erfahrung: str, methoden:str, ki_tools:str, evaluation_metrik:str):
+def evaluate_phase_and_get_response(nutzereingabe:list[str], antworten: BewertungEingabe, groesse:str, phase: str, ux_erfahrung: str, methoden:str, ki_tools:str, evaluation_metrik:str):
     prompt = (
         f"Bewerte die Phase '{phase}' im Audit zur nutzerzentrierten Entwicklung anhand folgender "
         "vordefinierter Bewertungsschema für die gegebenen Antworten:\n\n"
@@ -161,11 +161,14 @@ def evaluate_phase_and_get_response(nutzereingabe:list[str], antworten: Bewertun
         )
 
     prompt += (
+        f"Starte mit der Überschrift: ### Vorläufige Bewertung der Phase {phase}"
         f"Gib eine **Gesamtbewertungtext** der Phase **{phase}** ab, mit einer **kausalen Begründung**, "
         "die kompakt, erklärend und selektiv formuliert ist. Die Bewertung soll auf den Einzelbewertungen beruhen "
         "und klar aufzeigen, an welchen Stellen noch Schwächen bestehen. "
         "Fasse alle Informationen in einer zusammenhängenden Einschätzung zusammen, ohne die einzelnen Antworten explizit aufzuführen.\n"
-
+        f"Berücksichtige die Unternehmensgröße **{groesse}** ausdrücklich: "
+        "Kleinere Unternehmen sind grundsätzlich weicher zu bewerten, da nicht alle Maßnahmen, Rollen oder formalen Prozesse realistisch umsetzbar sind. "
+        "Bewerte daher vor allem, ob nutzerzentrierte Prinzipien unter den gegebenen Ressourcen praktikabel angewendet werden und vermeide idealtypische Maßstäbe."
     )
 
     prompt += (

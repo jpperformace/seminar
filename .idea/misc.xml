@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="crawl4AI-agent-v2" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="seal-env" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="rag_system" project-jdk-type="Python SDK" />
 </project>
