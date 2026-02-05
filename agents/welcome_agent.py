@@ -34,7 +34,7 @@ welcome_agent = Agent(
 
 
 # Funktion zum Abrufen der Begrüßung
-def get_welcome_message(phase:str):
+def get_welcome_message(phase:str, frage:str):
     prompt = (f"Erzeuge ein kurze Willkommensnachricht für die jeweilige Phase."
               f"Aktuell befindest sich die Simulation in der Phase {phase}. \n"
               f"- Wenn die Simulation in der ersten Phase Organisieren ist, dann beginne zuerst mit einer Einleitung, die erklärt wofür der KI-Assisstent da ist und was er bietet."
@@ -42,8 +42,7 @@ def get_welcome_message(phase:str):
               f"- Wenn der KI-Assitent sich in einer fortgeschrittenen Phase befindet, dann versuche eine Überleitung zu der Phase zu geben und erkläre was die Kernaspekte der Phase ist. \n"
               f"Weise anschließend drauf hin, dass man bei Unsicherheiten zu einzelnen Fragen/Kriterien immer Rückfragen stellen kann und nach der Auditbeurteilung,"
               f"man die möglichkeit hat Fragen zu stellen oder Informationen zu vorgeschlagenen Verbesserungen wie möglich Methoden und KI-Tools erhalten kann. "
-              f"Frage, ob er die Simulation starten möchte. "
-              f"Setzte 'simulation_gestartet' False. Gib deine Nachricht in 'antworttext' zurück")
+              f"Beginne am Ende die Simulation, indem du ganz am Ende der Einleitung flüssig die erste Frage stellt: {frage}")
 
     return welcome_agent.run_stream(user_prompt=prompt)
 

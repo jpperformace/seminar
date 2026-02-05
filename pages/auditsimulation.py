@@ -13,17 +13,19 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse, ToolCallPart, UserPromptPart
 )
+from streamlit_float import float_parent, float_init
 
 from agents.agent_loader import get_agent
 from agents.context_agent import assign_user_input, AssignResponseInput, assign_user_input_to_response_option, \
     ask_next_question, AssignUserResponseInput, NextResponseInput, help_user_to_response
 from agents.rating_agent import BewertungEingabe, evaluate_phase_and_get_response
-from agents.retrieval_agent import chat_agent
+from agents.retrieval_agent import chat_agent, run_rag_agent_with_evaluation_logic
 from agents.welcome_agent import get_welcome_message, start_simulation
 from audit_process.general import Phasen, get_no_expert_condition, get_method_search_string, get_method_user_input, \
     get_ai_tool_condition, get_ai_tool_search_query, get_ai_tool_user_input
 from audit_process.organizing import organizing_questions, organzing_response_text_options, organizing_response_q1, \
-    organizing_response_q2, organizing_response_q3, organzing_rating_metrik, organizing_response_q4, organizing_examples
+    organizing_response_q2, organizing_response_q3, organzing_rating_metrik, organizing_response_q4, \
+    organizing_examples, organzing_rating_metrik_with_help
 from utils import extract_assistant_response_text_from_output
 
 
@@ -40,6 +42,31 @@ st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
 st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation')
 st.sidebar.page_link('pages/auditsimulation.py', label='KI Auditsimuation')
+
+float_init()
+with st.container():
+
+    if st.button(
+            "Wechsle in die nächste Phase",
+            use_container_width=True,
+            disabled=not st.session_state.get("evaluation_finished", False),
+            type="primary",
+            key="next_phase_btn",
+    ):
+        st.switch_page("pages/simulation-understanding.py")
+
+    # WICHTIG: fixed + z-index + background, damit er wirklich "immer oben" bleibt
+    float_parent(css="""
+        position: fixed;
+        top: 5rem;
+        right: 5%;
+        width: 20%;
+        height: 2.5rem;
+        z-index: 9999;
+        background: white;
+    """)
+
+st.title("Nutzerzentriert Entwickelt")
 
 def display_message_part(part):
     """
@@ -59,9 +86,6 @@ def display_message_part(part):
 
 
 def add_response_messages_to_history(messages):
-    print("store messages")
-    print(st.session_state.messages)
-    print(messages)
     for msg in messages:
         if isinstance(msg, ModelResponse):
             if isinstance(msg, ModelResponse):
@@ -119,7 +143,8 @@ async def get_ai_tool():
     return ai_tools
 
 async def run_welcome_agent_with_streaming():
-    async with get_welcome_message(Phasen.ORGANIZING.value) as response:
+    print("welcome_agent")
+    async with get_welcome_message(Phasen.ORGANIZING.value, organizing_questions[0]) as response:
         async for output in response.stream_output():
             yield output
 
@@ -139,7 +164,7 @@ async def run_retrieval_agent_with_streaming(user_input, use_history=True, add_m
     async with chat_agent.run_stream(
         user_input,
         deps=st.session_state.agent_deps,
-        message_history=st.session_state.org_chat_messages if use_history else None
+        message_history=st.session_state.chat_messages if use_history else None
     ) as result:
         async for message in result.stream_text(delta=True):
             yield message
@@ -199,8 +224,6 @@ async def run_context_agent_with_streaming(userinput, assign_agent_response):
     add_response_messages_to_history(response.new_messages())
 
 async def run_report_generation_with_streaming(ai_tools, methods):
-    print("responses")
-    print(st.session_state.assigned_responses)
 
     a1 = next(a for a in organizing_response_q1 if a.text == st.session_state.assigned_responses[0])
     a2 = next(a for a in organizing_response_q2 if a.text == st.session_state.assigned_responses[1])
@@ -218,8 +241,23 @@ async def run_report_generation_with_streaming(ai_tools, methods):
         async for output in response.stream_output():
             yield output
 
+    st.session_state.chat_state = ChatState.FOLLOW_UP
     add_response_messages_to_history(response.new_messages())
 
+async def run_post_agent_with_streaming(user_input, use_history=True, add_message=True):
+
+    async with run_rag_agent_with_evaluation_logic(
+        nutzereingabe=user_input,
+        groesse=st.session_state.company_size,
+        ux_erfahrung=st.session_state.ux_experience,
+        agent_deps=st.session_state.agent_deps,
+        message_history=st.session_state.messages if use_history else None,
+        evaluation_metrik=organzing_rating_metrik_with_help
+    ) as result:
+        async for message in result.stream_text(delta=True):
+            yield message
+
+    add_response_messages_to_history(result.new_messages())
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -230,7 +268,6 @@ async def run_report_generation_with_streaming(ai_tools, methods):
 
 
 async def main():
-    st.title("Nutzerzentriert Entwickelt")
 
     # Initialize chat history in session state if not present
     if "messages" not in st.session_state:
@@ -261,8 +298,10 @@ async def main():
     if "o_user_inputs" not in st.session_state:
         st.session_state.o_user_inputs = []
 
-    if "simulation_started" not in st.session_state:
-        st.session_state.simulation_started = False
+    if "evaluation_finished" not in st.session_state:
+        st.session_state.evaluation_finished = False
+
+
         # Display all messages from the conversation so far
     # Each message is either a ModelRequest or ModelResponse.
     # We iterate over their parts to decide how to display them.
@@ -274,29 +313,25 @@ async def main():
     if st.session_state.chat_state == ChatState.WELCOME:
         with st.chat_message("assistant"):
             placeholder = st.empty()
-            full = ""
-            output_string = ""
+            full_start = ""
             stream_antworttext = True
 
             async for chunk in run_welcome_agent_with_streaming():
-                output_string = chunk
                 if stream_antworttext:
-                    full = chunk.antworttext
-                    placeholder.markdown(full + "▌")
+                    full_start = chunk.antworttext
+                    placeholder.markdown(full_start + "▌")
 
                 # Stoppe das Streaming, sobald der Text abgeschlossen ist
                 if '",' in chunk:
                     stream_antworttext = False
 
-            placeholder.markdown(full)
-            st.session_state.simulation_started = output_string.simulation_gestartet
+            placeholder.markdown(full_start)
 
-        st.session_state.chat_state = ChatState.START_SIMULATION
-
-    if st.session_state.simulation_started:
         st.session_state.chat_state = ChatState.GET_CONTEXT_INFO
+        st.rerun()
+
     # Chat input for the user
-    user_input = st.chat_input("What do you want to know?")
+    user_input = st.chat_input(key='content_input', placeholder="Was möchtest du wissen?")
 
     if user_input:
         # Display user prompt in the UI
@@ -307,8 +342,13 @@ async def main():
                 [ModelRequest(parts=[UserPromptPart(content=user_input)])])
 
         assign_agent_response = await assign_response(user_input)
+
+        print("Fragen:")
         print(st.session_state.o_question_index)
         print(len(organizing_questions))
+
+        print("Zugeordnete Antwort:")
+        print(assign_agent_response.output.zugeordnete_antwort)
 
         if assign_agent_response.output.zugeordnete_antwort and st.session_state.o_question_index == len(organizing_questions) - 1:
             st.session_state.chat_state = ChatState.CREATE_REPORT
@@ -317,8 +357,8 @@ async def main():
             with st.spinner("Die Bewertung wird jetzt ausgeführt das kann einige Zeit dauern."):
                 ai_tools = await  get_ai_tool()
                 methods = await get_methods()
+
                 print(ai_tools)
-                print(methods)
         # Display the assistant's partial response while streaming
 
         with st.chat_message("assistant"):
@@ -336,29 +376,26 @@ async def main():
                 generator = run_context_agent_with_streaming(user_input, assign_agent_response)
             elif st.session_state.chat_state == ChatState.CREATE_REPORT:
                 generator = run_report_generation_with_streaming(ai_tools, methods)
+            elif st.session_state.chat_state == ChatState.FOLLOW_UP:
+                generator = run_post_agent_with_streaming(user_input)
             else:
                 raise ValueError('Invalid chat state')
 
             async for chunk in generator:
                 output_string = chunk
 
-                if stream_antworttext:
-                    full = chunk.antworttext
+                print(chunk)
+                if st.session_state.chat_state == ChatState.FOLLOW_UP:
+                    full += chunk
                     message_placeholder.markdown(full + "▌")
-                if '",' in chunk:
-                    stream_antworttext = False
+                else:
+                    if stream_antworttext:
+                        full = chunk.antworttext
+                        message_placeholder.markdown(full + "▌")
+                    if '",' in chunk:
+                        stream_antworttext = False
 
             message_placeholder.markdown(full)
-            print("Output:")
-            print(output_string)
-
-            if st.session_state.chat_state == ChatState.START_SIMULATION:
-                st.session_state.simulation_started = output_string.simulation_gestartet
-
-                if st.session_state.simulation_started:
-                    print("Start context inquery")
-                    st.session_state.chat_state = ChatState.GET_CONTEXT_INFO
-
 
 
 if __name__ == "__main__":

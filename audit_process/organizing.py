@@ -230,8 +230,14 @@ all_response_lists = [
     organizing_response_q4
 ]
 
-organzing_rating_metrik = alternative_bewertung_organizing = [
+organzing_rating_metrik = [
     {"bewertung": option.bewertung, "inhalt": option.text}
+    for antwortliste in all_response_lists
+    for option in antwortliste
+]
+
+organzing_rating_metrik_with_help = [
+    {"bewertung": option.bewertung, "inhalt": option.text, "begrundung": option.begruendung, "verbesserungspotential": option.verbesserungpotential}
     for antwortliste in all_response_lists
     for option in antwortliste
 ]

@@ -11,6 +11,7 @@ from typing import Optional
 import chromadb
 
 import dotenv
+from pydantic import BaseModel
 from pydantic_ai import RunContext
 from pydantic_ai.agent import Agent
 
@@ -68,6 +69,7 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
     """
 
     print("retrieving documents...")
+    print(search_query)
 
     # Get ChromaDB client and collection
     collection = get_or_create_collection(
@@ -90,7 +92,6 @@ async def retrieve(context: RunContext[RAGDeps], search_query: str, n_results: i
     if context.deps.condition:
         formatted_context += f"POST CONDITION: {context.deps.condition}\n\n "
 
-    print(formatted_context)
 
     return formatted_context
 
@@ -129,6 +130,42 @@ async def run_rag_agent(
     result = await chat_agent.run(question, deps=deps)
     
     return result.data
+
+
+def run_rag_agent_with_evaluation_logic(nutzereingabe:str, groesse:str, ux_erfahrung: str, evaluation_metrik:str, agent_deps:RAGDeps, message_history):
+    prompt = f"""
+    Du bist ein UX-Experte und beantwortest die folgende Nutzereingabe sachlich, verständlich und kontextsensitiv:
+
+    Nutzereingabe:
+    „{nutzereingabe}“
+
+    ## Kontext des Nutzers
+    - UX-Erfahrung: {ux_erfahrung}
+      → Passe Tiefe, Sprache und Argumentation an die UX-Erfahrung an.
+      → Je geringer die UX-Erfahrung, desto ausführlicher, erklärender und verständlicher soll deine Antwort sein.
+      → Erläutere Fachbegriffe bei Bedarf verständlich.
+
+    - Unternehmensgröße: {groesse}
+      → Berücksichtige, dass kleinere Unternehmen geringere formale Anforderungen haben.
+      → Lege den Fokus auf praktikable, ressourcenschonende Maßnahmen statt auf idealtypische oder stark formalistische Ansätze.
+
+    ## Bewertungslogik
+    - Prüfe, ob nutzerzentrierte Prinzipien unter den gegebenen Rahmenbedingungen realistisch und sinnvoll angewendet werden können.
+    - Vermeide unrealistische Idealmaßstäbe.
+    - Falls sich die Nutzereingabe auf eine Bewertung oder Rückfrage zur Bewertung bezieht, argumentiere anhand des folgenden Bewertungsschemas:
+    {evaluation_metrik}
+
+    ## Wissensabruf (RAG)
+    - Falls die Nutzereingabe inhaltliche Fragen zu UX-Themen, UX-Methoden, dem Siegel „nutzerzentriert entwickelt“ oder zu KI-Tools enthält:
+      → Nutze das Retrieval-Tool, um fundierte und aktuelle Informationen einzubeziehen.
+
+    Antworte strukturiert, nachvollziehbar und nutzerorientiert.
+    """
+    return chat_agent.run_stream(
+        user_prompt=prompt,
+        deps=agent_deps,
+        message_history=message_history
+    )
 
 
 def main():
