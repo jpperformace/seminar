@@ -1,4 +1,4 @@
-# KI-Assistent für Siegel "Nutzerzentritert Entwickelt"
+# KI-Assistent zur Auditsimulation für Siegel "Nutzerzentritert Entwickelt"
 
 Ein intelligenter Retrieval-Augmented-Generation-(RAG)-Agent zur semantischen Durchsuchung von Word-basierten Dokumentationen.  
 Das System basiert auf **Pydantic AI** und nutzt eine Kombination aus Word-zu-Markdown-Konvertierung, hierarchischem Chunking und semantischer Vektorsuche mit **ChromaDB**.  
