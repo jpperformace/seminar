@@ -53,7 +53,7 @@ with st.container():
             type="primary",
             key="next_phase_btn",
     ):
-        st.switch_page("pages/simulation-understanding.py")
+        st.switch_page("pages/start.py")
 
     # WICHTIG: fixed + z-index + background, damit er wirklich "immer oben" bleibt
     float_parent(css="""
@@ -86,22 +86,33 @@ def display_message_part(part):
 
 
 def add_response_messages_to_history(messages):
+    print("Messages")
     for msg in messages:
         if isinstance(msg, ModelResponse):
-            if isinstance(msg, ModelResponse):
-                for part in msg.parts:
-                    if isinstance(part, ToolCallPart):
-                        output = part.args_as_dict()
-                        response_text = output.get("antworttext", "")
+            print(msg)
+            for part in msg.parts:
+                if isinstance(part, ToolCallPart):
+                    output = part.args_as_dict()
+                    response_text = output.get("antworttext", "")
 
-                        text_part = TextPart(content=response_text)
-                        # ModelResponse mit einem Text-Part
-                        model_response = ModelResponse(
-                            parts=[text_part]
-                        )
+                    text_part = TextPart(content=response_text)
+                    # ModelResponse mit einem Text-Part
+                    model_response = ModelResponse(
+                        parts=[text_part]
+                    )
 
-                        st.session_state.messages.append(model_response)
-                        return
+                    st.session_state.messages.append(model_response)
+                    return
+
+            print("add message")
+
+            st.session_state.messages.append(msg)
+
+def add_text_response_messages_to_history(messages):
+    print("Messages")
+    for msg in messages:
+        if isinstance(msg, ModelResponse):
+            print(msg)
             st.session_state.messages.append(msg)
 
 def store_output_information(output_string):
@@ -242,6 +253,7 @@ async def run_report_generation_with_streaming(ai_tools, methods):
             yield output
 
     st.session_state.chat_state = ChatState.FOLLOW_UP
+    st.session_state.evaluation_finished = True
     add_response_messages_to_history(response.new_messages())
 
 async def run_post_agent_with_streaming(user_input, use_history=True, add_message=True):
@@ -257,7 +269,8 @@ async def run_post_agent_with_streaming(user_input, use_history=True, add_messag
         async for message in result.stream_text(delta=True):
             yield message
 
-    add_response_messages_to_history(result.new_messages())
+    print("Post message")
+    add_text_response_messages_to_history(result.new_messages())
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -358,7 +371,6 @@ async def main():
                 ai_tools = await  get_ai_tool()
                 methods = await get_methods()
 
-                print(ai_tools)
         # Display the assistant's partial response while streaming
 
         with st.chat_message("assistant"):
