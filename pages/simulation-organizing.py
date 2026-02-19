@@ -286,5 +286,5 @@ with st.container():
         file_name="audit_report_document.html",
         mime="text/html"
     )
-    button_css = float_css_helper(width="37%", bottom="0.3rem", left="60%", transition=0)
+    button_css = float_css_helper(width="37%", top="0.3rem", left="60%", transition=0)
     float_parent(css=button_css)

@@ -86,6 +86,7 @@ def get_final_review_html(new_text:str):
       </style>
     </head>
     <body>
+      <h1> KI Report </h1>
       {new_text}
     </body>
     </html>

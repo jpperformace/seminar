@@ -88,6 +88,18 @@ rating_agent = Agent(
     )
 )
 
+final_rating_agent = Agent(
+    os.getenv("MODEL_CHOICE", "gpt-4.1-mini"),
+    output_type=ResponseTextOutput,
+    system_prompt=(
+        "Du bist ein hilfreicher Assistent zur Reifegradbewertung in Audits zur nutzerzentrierten Entwicklung. "
+        "Erstelle einen finalen Reprot in HTML-Code der folgendes enthält: eine subjektive Gesamteinschätzung, eine transparente kausale Begründung, "
+        "übergeordnete Verbesserungspotenziale sowie Empfehlungen zu Methoden und KI-Tools inklusive kurzer Erläuterung "
+        "der jeweils geeignetsten Option und kontrastiver Begründung für weniger passende Alternativen. "
+        "Du nennst keine Scores, sondern argumentierst qualitativ anhand der Bewertungsmetrik."
+    )
+)
+
 async def evaluate_phase(nutzereingabe:list[str], antworten: BewertungEingabe, phase: str, ux_erfahrung: str, methoden:str, ki_tools:str, evaluation_metrik:str):
     prompt = (
         f"Bewerte die Phase '{phase}' im Audit zur nutzerzentrierten Entwicklung anhand folgender "
@@ -185,39 +197,47 @@ def evaluate_phase_and_get_response(nutzereingabe:list[str], antworten: Bewertun
 
     return rating_agent.run_stream(user_prompt=prompt)
 
-def final_report(phase:str, groesse:str, ux_erfahrung:str, pre_evaluation:str, message_history):
+def get_final_report(phase:str, groesse:str, ux_erfahrung:str, pre_evaluation:str, message_history):
     prompt = (
-        f"Erstelle eine finale Auditberwertung für die Phase {phase}. "
-        f"Du sollst die Inhalte der vorläufigen Bewertung übernehmen und die finalen Bericht entsprechend der message_histroy so überarbeiten, "
-        f"dass du Verbesserung / Fehlinterpretatetionen die der Nutzer dir als Rückmeldungen auf die Bewertung gegeben hat, in den finalen Report einfließen lässt. "
-        f"dass du Informationen die der Nutzer explizit angefragt hat im Report vertiefst. (zum Beispiel über vorgebene Methoden oder KI-Tools). "
-        f"Die Vorläufige Bewertung lautet: {pre_evaluation}"
-    )
-
-
-    prompt += (
-        f"Starte mit der Überschrift: ### Bewertung der Phase {phase}"
-        f"Strukturiere die Bewertung wie folgt: "
-        f"Bewertung: (hier kurz und knapp)"
-        f"Gib eine **Gesamtbewertungtext** der Phase **{phase}** ab, mit einer **kausalen Begründung**, "
-        "die kompakt, erklärend und selektiv formuliert ist. Die Bewertung soll auf den Einzelbewertungen beruhen "
-        "und klar aufzeigen, an welchen Stellen noch Schwächen bestehen. "
-        "Fasse alle Informationen in einer zusammenhängenden Einschätzung zusammen, ohne die einzelnen Antworten explizit aufzuführen.\n"
-        f"Berücksichtige die Unternehmensgröße **{groesse}** ausdrücklich: "
-        "Kleinere Unternehmen sind grundsätzlich weicher zu bewerten, da nicht alle Maßnahmen, Rollen oder formalen Prozesse realistisch umsetzbar sind. "
-        "Bewerte daher vor allem, ob nutzerzentrierte Prinzipien unter den gegebenen Ressourcen praktikabel angewendet werden und vermeide idealtypische Maßstäbe."
+        f"Erstelle eine finale Auditbewertung für die Phase {phase}. "
+        "Übernimm die Inhalte der vorläufigen Bewertung und überarbeite sie auf Basis der message_history. "
+        "Berücksichtige dabei alle Rückmeldungen des Nutzers zur vorläufigen Bewertung: "
+        "Korrigiere Fehlinterpretationen, integriere Verbesserungshinweise und vertiefe Inhalte, "
+        "die der Nutzer explizit nachgefragt hat (z. B. konkrete Methoden oder KI-Tools). "
+        f"Die vorläufige Bewertung lautet: {pre_evaluation}"
     )
 
     prompt += (
-        f"Je nach UX-Erfahrung des Unternehmens ({ux_erfahrung}) soll der Fokus der Erklärung sowie der Detailgrad der Begründung angepasst werden. "
-        "Dabei orientiert sich die Gestaltung der Erklärung an den Konzepten von Ye et al.\n\n"
-        "- Bei **wenig Erfahrung**:\n"
-        "  - **Terminology**: Fachbegriffe (z.B. Methoden) sollen verständlich erklärt werden.\n"
-        "  - **Justification**: Die Begründung soll ausführlich darlegen, *warum* eine bestimmte Bewertung vergeben wurde.\n"
-        "  - **Traceability** ist in dieser Gruppe weniger vorrangig.\n\n"
-        "- Bei **erfahreneren Unternehmen**:\n"
-        "  - **Terminology**: Kann reduziert werden – Fachbegriffe müssen nicht mehr ausführlich erläutert werden.\n"
-        "  - **Justification**: Die Begründung soll weiterhin klar erkennbar machen, *warum* eine Bewertung erfolgt ist – jedoch kurz, prägnant und fachlich fundiert.\n"
-        "  - **Traceability**: Es soll transparent sein, *welche* Kriterien oder Beobachtungen zum Ergebnis geführt haben.\n")
+        f"""
+            <h2>Bewertung der Phase {phase}</h3>
+            
+            <p>Strukturiere die Bewertung wie folgt:</p>
+            
+            <h4>Bewertung:</h4>
+            <p>Gib eine kurze, prägnante Gesamtbeurteilung.</p>
+            
+            <h4>Begründung:</h4>
+            <p>Formuliere eine ausführliche, kausale Begründung unter Bezug auf die Kriterien und die Antworten des Nutzers.</p>
+            
+            <h4>Verbesserungspotential:</h6>
+            <p>Gib konkrete Vorschläge zur Weiterentwicklung, um eine bessere Bewertung zu erreichen.</p>
+            
+            <p><strong>UX-Methoden:</strong></p>
+            <p>Erläutere geeignete vorgeschlagene Methoden genauer und begründe, welche im Kontext am besten passen.</p>
+            
+            <p><strong>KI-Tools:</strong></p>
+            <p>Erläutere geeignete vorgeschlagene KI-Tools genauer und begründe, welche im Kontext am sinnvollsten sind.</p>
+        """
+    )
+    prompt += (
+        f"Berücksichtige die Unternehmensgröße ({groesse}) ausdrücklich: "
+        "Kleinere Unternehmen sind grundsätzlich differenziert und pragmatisch zu bewerten, "
+        "da nicht alle Maßnahmen, Rollen oder formalen Prozesse realistisch umsetzbar sind. "
+        "Bewerte daher primär, ob nutzerzentrierte Prinzipien unter den gegebenen Ressourcen praktikabel angewendet werden, "
+        "und vermeide idealtypische Maßstäbe.\n\n"
+        f"Passe zudem den Detailgrad und die fachliche Tiefe an die UX-Erfahrung des Unternehmens ({ux_erfahrung}) an: "
+        "Für unerfahrene Unternehmen formuliere verständlicher und erklärender. "
+        "Für erfahrene Unternehmen ergänze vertiefende und strategische Hinweise."
+    )
 
-    return rating_agent.run_stream(user_prompt=prompt, message_history=message_history)
+    return final_rating_agent.run_stream(user_prompt=prompt, message_history=message_history)

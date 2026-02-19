@@ -13,12 +13,12 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse, ToolCallPart, UserPromptPart
 )
-from streamlit_float import float_parent, float_init
+from streamlit_float import float_parent, float_init, float_css_helper
 
 from agents.agent_loader import get_agent
 from agents.context_agent import assign_user_input, AssignResponseInput, assign_user_input_to_response_option, \
     ask_next_question, AssignUserResponseInput, NextResponseInput, help_user_to_response
-from agents.rating_agent import BewertungEingabe, evaluate_phase_and_get_response
+from agents.rating_agent import BewertungEingabe, evaluate_phase_and_get_response, get_final_report
 from agents.retrieval_agent import chat_agent, run_rag_agent_with_evaluation_logic
 from agents.welcome_agent import get_welcome_message, start_simulation
 from audit_process.general import Phasen, get_no_expert_condition, get_method_search_string, get_method_user_input, \
@@ -26,6 +26,7 @@ from audit_process.general import Phasen, get_no_expert_condition, get_method_se
 from audit_process.organizing import organizing_questions, organzing_response_text_options, organizing_response_q1, \
     organizing_response_q2, organizing_response_q3, organzing_rating_metrik, organizing_response_q4, \
     organizing_examples, organzing_rating_metrik_with_help
+from ui.html import get_final_review_html
 from utils import extract_assistant_response_text_from_output
 
 
@@ -43,6 +44,23 @@ st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
 st.sidebar.page_link('pages/auditsimulation-organizing.py', label='KI-Audit: Organisieren')
 
 float_init()
+
+
+
+async def run_final_report_generation():
+    async with get_final_report(
+            phase=Phasen.ORGANIZING.value,
+            groesse=st.session_state.company_size,
+            ux_erfahrung=st.session_state.ux_experience,
+            pre_evaluation=st.session_state.organizing_report,
+            message_history=st.session_state.organizing_messages
+    ) as response:
+        final_text = await response.get_output()
+        print(final_text)
+        return final_text
+
+
+
 with st.container():
 
     if st.button(
@@ -52,6 +70,10 @@ with st.container():
             type="primary",
             key="next_phase_btn",
     ):
+        print("Final Report")
+        final_report = asyncio.run(run_final_report_generation())
+
+        st.session_state.evaluation_report = final_report.antworttext
         st.switch_page("pages/auditsimulation-understanding.py")
 
     # WICHTIG: fixed + z-index + background, damit er wirklich "immer oben" bleibt
@@ -64,6 +86,18 @@ with st.container():
         z-index: 9999;
         background: white;
     """)
+
+
+with st.container():
+    st.download_button(
+        label="Download als HTML",
+        data=get_final_review_html(st.session_state.get("evaluation_report")),
+        file_name="audit_report_document.html",
+        mime="text/html",
+        disabled = not st.session_state.get("organizing_evaluation_finished", False)
+    )
+    button_css = float_css_helper(width="37%", top="5rem", right="0%", transition=0)
+    float_parent(css=button_css)
 
 st.title("Nutzerzentriert Entwickelt")
 
@@ -247,9 +281,10 @@ async def run_report_generation_with_streaming(ai_tools, methods):
         async for output in response.stream_output():
             yield output
 
-    st.session_state.organizing_chat_state = ChatState.FOLLOW_UP
     st.session_state.organizing_evaluation_finished = True
     add_response_messages_to_history(response.new_messages())
+
+
 
 async def run_post_agent_with_streaming(user_input, use_history=True, add_message=True):
 
@@ -309,6 +344,9 @@ async def main():
 
     if "organizing_button_updated" not in st.session_state:
         st.session_state.organizing_button_updated = True
+
+    if "organizing_report" not in st.session_state:
+        st.session_state.organizing_report = ""
 
     if "evaluation_report" not in st.session_state:
         st.session_state.evaluation_report = ""
@@ -406,6 +444,10 @@ async def main():
                         stream_antworttext = False
 
             message_placeholder.markdown(full)
+            if st.session_state.organizing_chat_state == ChatState.CREATE_REPORT:
+                print(full)
+                st.session_state.organizing_report = full
+                st.session_state.organizing_chat_state = ChatState.FOLLOW_UP
 
             if st.session_state.organizing_evaluation_finished and st.session_state.organizing_button_updated:
                 st.session_state.organizing_button_updated = False
@@ -415,3 +457,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
