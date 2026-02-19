@@ -184,3 +184,40 @@ def evaluate_phase_and_get_response(nutzereingabe:list[str], antworten: Bewertun
         "  - **Traceability**: Es soll transparent sein, *welche* Kriterien oder Beobachtungen zum Ergebnis geführt haben.\n")
 
     return rating_agent.run_stream(user_prompt=prompt)
+
+def final_report(phase:str, groesse:str, ux_erfahrung:str, pre_evaluation:str, message_history):
+    prompt = (
+        f"Erstelle eine finale Auditberwertung für die Phase {phase}. "
+        f"Du sollst die Inhalte der vorläufigen Bewertung übernehmen und die finalen Bericht entsprechend der message_histroy so überarbeiten, "
+        f"dass du Verbesserung / Fehlinterpretatetionen die der Nutzer dir als Rückmeldungen auf die Bewertung gegeben hat, in den finalen Report einfließen lässt. "
+        f"dass du Informationen die der Nutzer explizit angefragt hat im Report vertiefst. (zum Beispiel über vorgebene Methoden oder KI-Tools). "
+        f"Die Vorläufige Bewertung lautet: {pre_evaluation}"
+    )
+
+
+    prompt += (
+        f"Starte mit der Überschrift: ### Bewertung der Phase {phase}"
+        f"Strukturiere die Bewertung wie folgt: "
+        f"Bewertung: (hier kurz und knapp)"
+        f"Gib eine **Gesamtbewertungtext** der Phase **{phase}** ab, mit einer **kausalen Begründung**, "
+        "die kompakt, erklärend und selektiv formuliert ist. Die Bewertung soll auf den Einzelbewertungen beruhen "
+        "und klar aufzeigen, an welchen Stellen noch Schwächen bestehen. "
+        "Fasse alle Informationen in einer zusammenhängenden Einschätzung zusammen, ohne die einzelnen Antworten explizit aufzuführen.\n"
+        f"Berücksichtige die Unternehmensgröße **{groesse}** ausdrücklich: "
+        "Kleinere Unternehmen sind grundsätzlich weicher zu bewerten, da nicht alle Maßnahmen, Rollen oder formalen Prozesse realistisch umsetzbar sind. "
+        "Bewerte daher vor allem, ob nutzerzentrierte Prinzipien unter den gegebenen Ressourcen praktikabel angewendet werden und vermeide idealtypische Maßstäbe."
+    )
+
+    prompt += (
+        f"Je nach UX-Erfahrung des Unternehmens ({ux_erfahrung}) soll der Fokus der Erklärung sowie der Detailgrad der Begründung angepasst werden. "
+        "Dabei orientiert sich die Gestaltung der Erklärung an den Konzepten von Ye et al.\n\n"
+        "- Bei **wenig Erfahrung**:\n"
+        "  - **Terminology**: Fachbegriffe (z.B. Methoden) sollen verständlich erklärt werden.\n"
+        "  - **Justification**: Die Begründung soll ausführlich darlegen, *warum* eine bestimmte Bewertung vergeben wurde.\n"
+        "  - **Traceability** ist in dieser Gruppe weniger vorrangig.\n\n"
+        "- Bei **erfahreneren Unternehmen**:\n"
+        "  - **Terminology**: Kann reduziert werden – Fachbegriffe müssen nicht mehr ausführlich erläutert werden.\n"
+        "  - **Justification**: Die Begründung soll weiterhin klar erkennbar machen, *warum* eine Bewertung erfolgt ist – jedoch kurz, prägnant und fachlich fundiert.\n"
+        "  - **Traceability**: Es soll transparent sein, *welche* Kriterien oder Beobachtungen zum Ergebnis geführt haben.\n")
+
+    return rating_agent.run_stream(user_prompt=prompt, message_history=message_history)

@@ -23,9 +23,9 @@ from agents.retrieval_agent import chat_agent, run_rag_agent_with_evaluation_log
 from agents.welcome_agent import get_welcome_message, start_simulation
 from audit_process.general import Phasen, get_no_expert_condition, get_method_search_string, get_method_user_input, \
     get_ai_tool_condition, get_ai_tool_search_query, get_ai_tool_user_input
-from audit_process.organizing import organizing_questions, organzing_response_text_options, organizing_response_q1, \
-    organizing_response_q2, organizing_response_q3, organzing_rating_metrik, organizing_response_q4, \
-    organizing_examples, organzing_rating_metrik_with_help
+from audit_process.understanding import understanding_questions, understanding_response_text_options, understanding_response_q1, \
+    understanding_response_q2, understanding_response_q3, understanding_response_q4, understanding_rating_metrik,  \
+    understanding_examples, organzing_rating_metrik_with_help
 from utils import extract_assistant_response_text_from_output
 
 
@@ -40,8 +40,8 @@ load_dotenv()
 
 st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
-st.sidebar.page_link('pages/simulation-organizing.py', label='Audit Simulation')
-st.sidebar.page_link('pages/auditsimulation.py', label='KI Auditsimuation')
+st.sidebar.page_link('pages/auditsimulation-organizing.py', label='KI-Audit: Organisieren')
+st.sidebar.page_link('pages/auditsimulation-understanding.py', label='KI-Audit: Verstehen')
 
 float_init()
 with st.container():
@@ -49,7 +49,7 @@ with st.container():
     if st.button(
             "Wechsle in die nächste Phase",
             use_container_width=True,
-            disabled=not st.session_state.get("evaluation_finished", False),
+            disabled=not st.session_state.get("understanding_evaluation_finished", False),
             type="primary",
             key="next_phase_btn",
     ):
@@ -86,7 +86,6 @@ def display_message_part(part):
 
 
 def add_response_messages_to_history(messages):
-    print("Add Messages to History")
     for msg in messages:
         if isinstance(msg, ModelResponse):
             for part in msg.parts:
@@ -100,19 +99,17 @@ def add_response_messages_to_history(messages):
                         parts=[text_part]
                     )
 
-                    st.session_state.messages.append(model_response)
+                    st.session_state.understanding_messages.append(model_response)
                     return
 
-            print("add message")
-
-            st.session_state.messages.append(msg)
+            st.session_state.understanding_messages.append(msg)
 
 def add_text_response_messages_to_history(messages):
     for msg in messages:
         if isinstance(msg, ModelResponse):
             for part in msg.parts:
                 if isinstance(part, TextPart):
-                    st.session_state.messages.append(msg)
+                    st.session_state.understanding_messages.append(msg)
 
 
 def store_output_information(output_string):
@@ -122,15 +119,15 @@ def store_output_information(output_string):
         st.error(f"Fehler beim Parsen des Agenten-Outputs: {e}")
         return
 
-    if st.session_state.chat_state in [ChatState.WELCOME, ChatState.START_SIMULATION]:
+    if st.session_state.understanding_chat_state in [ChatState.WELCOME, ChatState.START_SIMULATION]:
         st.session_state.simulation_started = output_data['simulation_gestartet']
 
 async def get_methods():
     if not st.session_state.have_ux_expert:
         st.session_state.agent_deps.condition = get_no_expert_condition()
-    st.session_state.agent_deps.explicit_search_query = get_method_search_string(Phasen.ORGANIZING.value)
+    st.session_state.agent_deps.explicit_search_query = get_method_search_string(Phasen.UNDERSTANDING.value)
     methods = ""
-    async for message in run_retrieval_agent_with_streaming(user_input=get_method_user_input(Phasen.ORGANIZING.value),
+    async for message in run_retrieval_agent_with_streaming(user_input=get_method_user_input(Phasen.UNDERSTANDING.value),
                                                   use_history=False, add_message=False):
         methods += message
 
@@ -141,10 +138,10 @@ async def get_methods():
 
 async def get_ai_tool():
     st.session_state.agent_deps.condition = get_ai_tool_condition()
-    st.session_state.agent_deps.explicit_search_query = get_ai_tool_search_query(Phasen.ORGANIZING.value)
+    st.session_state.agent_deps.explicit_search_query = get_ai_tool_search_query(Phasen.UNDERSTANDING.value)
 
     ai_tools = ""
-    async for message in run_retrieval_agent_with_streaming(get_ai_tool_user_input(Phasen.ORGANIZING.value), use_history=False,
+    async for message in run_retrieval_agent_with_streaming(get_ai_tool_user_input(Phasen.UNDERSTANDING.value), use_history=False,
                                                   add_message=False):
         ai_tools += message
 
@@ -154,8 +151,7 @@ async def get_ai_tool():
     return ai_tools
 
 async def run_welcome_agent_with_streaming():
-    print("welcome_agent")
-    async with get_welcome_message(Phasen.ORGANIZING.value, organizing_questions[0]) as response:
+    async with get_welcome_message(Phasen.UNDERSTANDING.value, understanding_questions[0]) as response:
         async for output in response.stream_output():
             yield output
 
@@ -164,7 +160,7 @@ async def run_welcome_agent_with_streaming():
 
 
 async def run_simulation_agent_with_streaming(userinput, frage):
-    async with start_simulation(userinput, frage, st.session_state.messages) as response:
+    async with start_simulation(userinput, frage, st.session_state.understanding_messages) as response:
 
         async for output in response.stream_output():
             yield output
@@ -185,10 +181,10 @@ async def run_retrieval_agent_with_streaming(user_input, use_history=True, add_m
 
 def get_agent_input(userinput):
     return AssignUserResponseInput(
-        frage=organizing_questions[st.session_state.o_question_index],
+        frage=understanding_questions[st.session_state.understanding_question_index],
         nutzereingabe=userinput,
-        antwortoptionen=organzing_response_text_options[st.session_state.o_question_index],
-        example=organizing_examples[st.session_state.o_question_index]
+        antwortoptionen=understanding_response_text_options[st.session_state.understanding_question_index],
+        example=understanding_examples[st.session_state.understanding_question_index]
     )
 
 async def assign_response(userinput):
@@ -198,36 +194,23 @@ async def run_context_agent_with_streaming(userinput, assign_agent_response):
 
     help_input = get_agent_input(userinput)
 
-    next_question = 1
-
-    if assign_agent_response.output.zugeordnete_antwort == organizing_response_q1[1].text:
-        next_question = 2
-        st.session_state.have_ux_expert = True
-
     if assign_agent_response.output.zugeordnete_antwort is None:
-        async with help_user_to_response(help_input, st.session_state.messages) as response:
+        async with help_user_to_response(help_input, st.session_state.understanding_messages) as response:
             async for output in response.stream_output():
                 yield output
-    elif st.session_state.o_question_index < len(organizing_questions) - 1:
+    elif st.session_state.understanding_question_index < len(understanding_questions) - 1:
         next_input = NextResponseInput(
-            frage=organizing_questions[st.session_state.o_question_index],
+            frage=understanding_questions[st.session_state.understanding_question_index],
             nutzereingabe=userinput,
-            naechste_frage=organizing_questions[st.session_state.o_question_index + next_question]
+            naechste_frage=understanding_questions[st.session_state.understanding_question_index + 1]
         )
 
-        async with ask_next_question(next_input, st.session_state.messages) as response:
+        async with ask_next_question(next_input, st.session_state.understanding_messages) as response:
             async for output in response.stream_output():
                 yield output
 
-        if st.session_state.o_question_index == 0:
-            st.session_state.ux_experience = assign_agent_response.output.zugeordnete_antwort
-        elif st.session_state.o_question_index == 1:
-            st.session_state.company_size = assign_agent_response.output.zugeordnete_antwort
-        elif st.session_state.o_question_index == 3:
-            st.session_state.have_ux_expert = assign_agent_response.output.zugeordnete_antwort
-        else:
-            st.session_state.assigned_responses.append(assign_agent_response.output.zugeordnete_antwort)
-        st.session_state.o_question_index += next_question
+        st.session_state.understanding_assigned_responses.append(assign_agent_response.output.zugeordnete_antwort)
+        st.session_state.understanding_question_index += 1
 
     else:
         raise ValueError('Invalid chat state')
@@ -236,24 +219,24 @@ async def run_context_agent_with_streaming(userinput, assign_agent_response):
 
 async def run_report_generation_with_streaming(ai_tools, methods):
 
-    a1 = next(a for a in organizing_response_q1 if a.text == st.session_state.assigned_responses[0])
-    a2 = next(a for a in organizing_response_q2 if a.text == st.session_state.assigned_responses[1])
-    a3 = next(a for a in organizing_response_q3 if a.text == st.session_state.assigned_responses[2])
-    a4 = next(a for a in organizing_response_q4 if a.text == st.session_state.assigned_responses[3])
+    a1 = next(a for a in understanding_response_q1 if a.text == st.session_state.understanding_assigned_responses[0])
+    a2 = next(a for a in understanding_response_q2 if a.text == st.session_state.understanding_assigned_responses[1])
+    a3 = next(a for a in understanding_response_q3 if a.text == st.session_state.understanding_assigned_responses[2])
+    a4 = next(a for a in understanding_response_q4 if a.text == st.session_state.understanding_assigned_responses[3])
 
     async with evaluate_phase_and_get_response(
-        nutzereingabe=st.session_state.o_user_inputs,
+        nutzereingabe=st.session_state.understanding_user_inputs,
         antworten=BewertungEingabe(antwortoptionen=[a1, a2, a3, a4]),
-        phase=Phasen.ORGANIZING.value,
+        phase=Phasen.UNDERSTANDING.value,
         groesse=st.session_state.company_size,
         ux_erfahrung=st.session_state.ux_experience,
-        methoden=methods, ki_tools=ai_tools, evaluation_metrik=organzing_rating_metrik
+        methoden=methods, ki_tools=ai_tools, evaluation_metrik=understanding_rating_metrik
     ) as response:
         async for output in response.stream_output():
             yield output
 
-    st.session_state.chat_state = ChatState.FOLLOW_UP
-    st.session_state.evaluation_finished = True
+    st.session_state.understanding_chat_state = ChatState.FOLLOW_UP
+    st.session_state.understanding_evaluation_finished = True
     add_response_messages_to_history(response.new_messages())
 
 async def run_post_agent_with_streaming(user_input, use_history=True, add_message=True):
@@ -263,13 +246,12 @@ async def run_post_agent_with_streaming(user_input, use_history=True, add_messag
         groesse=st.session_state.company_size,
         ux_erfahrung=st.session_state.ux_experience,
         agent_deps=st.session_state.agent_deps,
-        message_history=st.session_state.messages if use_history else None,
+        message_history=st.session_state.understanding_messages if use_history else None,
         evaluation_metrik=organzing_rating_metrik_with_help
     ) as result:
         async for message in result.stream_text(delta=True):
             yield message
 
-    print("Post message")
     add_text_response_messages_to_history(result.new_messages())
 
 
@@ -283,53 +265,37 @@ async def run_post_agent_with_streaming(user_input, use_history=True, add_messag
 async def main():
 
     # Initialize chat history in session state if not present
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    if "understanding_messages" not in st.session_state:
+        st.session_state.understanding_messages = []
 
-    if "assigned_responses" not in st.session_state:
-        st.session_state.assigned_responses = []
+    if "understanding_assigned_responses" not in st.session_state:
+        st.session_state.understanding_assigned_responses = []
 
-    if "have_ux_expert" not in st.session_state:
-        st.session_state.have_ux_expert = False
+    if "understanding_chat_state" not in st.session_state:
+        st.session_state.understanding_chat_state = ChatState.WELCOME
 
-    if "ux_experience" not in st.session_state:
-        st.session_state.ux_experience = ''
+    if "understanding_question_index" not in st.session_state:
+        st.session_state.understanding_question_index = 0
 
-    if "company_size" not in st.session_state:
-        st.session_state.company_size = ''
+    if "understanding_user_inputs" not in st.session_state:
+        st.session_state.understanding_user_inputs = []
 
-    if "agent_deps" not in st.session_state:
-        with st.spinner("Initialisiere Agent..."):
-            st.session_state.agent_deps = get_agent()
+    if "understanding_evaluation_finished" not in st.session_state:
+        st.session_state.understanding_evaluation_finished = False
 
-    if "chat_state" not in st.session_state:
-        st.session_state.chat_state = ChatState.WELCOME
-
-    if "o_question_index" not in st.session_state:
-        st.session_state.o_question_index = 0
-
-    if "o_user_inputs" not in st.session_state:
-        st.session_state.o_user_inputs = []
-
-    if "evaluation_finished" not in st.session_state:
-        st.session_state.evaluation_finished = False
-
-    if "button_updated" not in st.session_state:
-        st.session_state.button_updated = True
-
-    if "evaluation_report" not in st.session_state:
-        evaluation_report = ""
+    if "understanding_button_updated" not in st.session_state:
+        st.session_state.understanding_button_updated = True
 
 
         # Display all messages from the conversation so far
     # Each message is either a ModelRequest or ModelResponse.
     # We iterate over their parts to decide how to display them.
-    for msg in st.session_state.messages:
+    for msg in st.session_state.understanding_messages:
         if isinstance(msg, ModelRequest) or isinstance(msg, ModelResponse):
             for part in msg.parts:
                 display_message_part(part)
 
-    if st.session_state.chat_state == ChatState.WELCOME:
+    if st.session_state.understanding_chat_state == ChatState.WELCOME:
         with st.chat_message("assistant"):
             placeholder = st.empty()
             full_start = ""
@@ -346,7 +312,7 @@ async def main():
 
             placeholder.markdown(full_start)
 
-        st.session_state.chat_state = ChatState.GET_CONTEXT_INFO
+        st.session_state.understanding_chat_state = ChatState.GET_CONTEXT_INFO
         st.rerun()
 
     # Chat input for the user
@@ -355,23 +321,23 @@ async def main():
     if user_input:
         # Display user prompt in the UI
         with st.chat_message("user"):
-            st.session_state.o_user_inputs.append(user_input)
+            st.session_state.understanding_user_inputs.append(user_input)
             st.markdown(user_input)
-            st.session_state.messages.extend(
+            st.session_state.understanding_messages.extend(
                 [ModelRequest(parts=[UserPromptPart(content=user_input)])])
 
         assign_agent_response = await assign_response(user_input)
 
         print("Fragen:")
-        print(st.session_state.o_question_index)
-        print(len(organizing_questions))
+        print(st.session_state.understanding_question_index)
+        print(len(understanding_questions))
 
         print("Zugeordnete Antwort:")
         print(assign_agent_response.output.zugeordnete_antwort)
 
-        if assign_agent_response.output.zugeordnete_antwort and st.session_state.o_question_index == len(organizing_questions) - 1:
-            st.session_state.chat_state = ChatState.CREATE_REPORT
-            st.session_state.assigned_responses.append(assign_agent_response.output.zugeordnete_antwort)
+        if assign_agent_response.output.zugeordnete_antwort and st.session_state.understanding_question_index == len(understanding_questions) - 1:
+            st.session_state.understanding_chat_state = ChatState.CREATE_REPORT
+            st.session_state.understanding_assigned_responses.append(assign_agent_response.output.zugeordnete_antwort)
 
             with st.spinner("Die Bewertung wird jetzt ausgeführt das kann einige Zeit dauern."):
                 ai_tools = await  get_ai_tool()
@@ -387,14 +353,14 @@ async def main():
             stream_antworttext = True
 
             # Properly consume the async generator with async for
-            print(st.session_state.chat_state)
-            if st.session_state.chat_state == ChatState.START_SIMULATION:
-                generator = run_simulation_agent_with_streaming(user_input, organizing_questions[0])
-            elif st.session_state.chat_state == ChatState.GET_CONTEXT_INFO:
+            print(st.session_state.understanding_chat_state)
+            if st.session_state.understanding_chat_state == ChatState.START_SIMULATION:
+                generator = run_simulation_agent_with_streaming(user_input, understanding_questions[0])
+            elif st.session_state.understanding_chat_state == ChatState.GET_CONTEXT_INFO:
                 generator = run_context_agent_with_streaming(user_input, assign_agent_response)
-            elif st.session_state.chat_state == ChatState.CREATE_REPORT:
+            elif st.session_state.understanding_chat_state == ChatState.CREATE_REPORT:
                 generator = run_report_generation_with_streaming(ai_tools, methods)
-            elif st.session_state.chat_state == ChatState.FOLLOW_UP:
+            elif st.session_state.understanding_chat_state == ChatState.FOLLOW_UP:
                 generator = run_post_agent_with_streaming(user_input)
             else:
                 raise ValueError('Invalid chat state')
@@ -402,8 +368,7 @@ async def main():
             async for chunk in generator:
                 output_string = chunk
 
-                print(chunk)
-                if st.session_state.chat_state == ChatState.FOLLOW_UP:
+                if st.session_state.understanding_chat_state == ChatState.FOLLOW_UP:
                     full += chunk
                     message_placeholder.markdown(full + "▌")
                 else:
@@ -415,8 +380,8 @@ async def main():
 
             message_placeholder.markdown(full)
 
-            if st.session_state.evaluation_finished and st.session_state.button_updated:
-                st.session_state.button_updated = False
+            if st.session_state.understanding_evaluation_finished and st.session_state.understanding_button_updated:
+                st.session_state.understanding_button_updated = False
                 st.rerun()
 
 
