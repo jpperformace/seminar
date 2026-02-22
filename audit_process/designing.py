@@ -205,7 +205,7 @@ designing_rating_metrik_with_help = [
         "bewertung": option.bewertung,
         "inhalt": option.text,
         "begruendung": option.begruendung,
-        "verbesserungspotential": option.verbesserungspotential
+        "verbesserungpotential": option.verbesserungpotential
     }
     for antwortliste in all_designing_response_lists
     for option in antwortliste

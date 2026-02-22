@@ -132,12 +132,15 @@ async def run_rag_agent(
     return result.data
 
 
-def run_rag_agent_with_evaluation_logic(nutzereingabe:str, groesse:str, ux_erfahrung: str, evaluation_metrik:str, agent_deps:RAGDeps, message_history):
+def run_rag_agent_with_evaluation_logic(nutzereingabe:str, phase: str, groesse:str, ux_erfahrung: str, evaluation_metrik:str, agent_deps:RAGDeps, message_history):
     prompt = f"""
     Du bist ein UX-Experte und beantwortest die folgende Nutzereingabe sachlich, verständlich und kontextsensitiv:
 
     Nutzereingabe:
     „{nutzereingabe}“
+    
+    Wichtig ist du bewertest immer nur eine Phase. Aktuell sind wir in der Phase {phase}. Retrieve immer nur Informationen für die entsprechende Phase 
+    Zum Beispiel: KI-Tools in der Phase {phase}, UX-Methoden in der Phase {phase}
 
     ## Kontext des Nutzers
     - UX-Erfahrung: {ux_erfahrung}

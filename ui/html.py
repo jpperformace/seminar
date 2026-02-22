@@ -1,5 +1,7 @@
 import textwrap
 
+import markdown
+
 from ui.css import get_review_container_css
 
 def get_sidebar_html():
@@ -12,6 +14,8 @@ def get_sidebar_html():
    """)
 
 def get_header_html():
+
+
     return textwrap.dedent("""
     <div style="
         position: relative;
@@ -72,7 +76,12 @@ def get_new_review_text(phase:str, bewertung:str, begruendung:str, verbessung:st
     """
     return new_text
 
-def get_final_review_html(new_text:str):
+def get_final_review_html(organizing, understanding, designing, evaluation):
+    html_content_organizing = markdown.markdown(organizing) if organizing else "<p>- Keine Bewertung in der Phase Organisieren vorhanden.</p>"
+    html_content_understanding = markdown.markdown(understanding) if understanding else "<p>- Keine Bewertung in der Phase Verstehen vorhanden.</p>"
+    html_content_designing = markdown.markdown(designing) if designing else "<p>- Keine Bewertung in der Phase Gestalten vorhanden.</p>"
+    html_content_evaluation = markdown.markdown(evaluation) if evaluation else "<p>-  Keine Bewertung in der Phase Bewerten vorhanden.</p>"
+
     return textwrap.dedent(f"""
     <html>
     <head>
@@ -87,7 +96,10 @@ def get_final_review_html(new_text:str):
     </head>
     <body>
       <h1> KI Report </h1>
-      {new_text}
+      {html_content_organizing}
+      {html_content_understanding}
+      {html_content_designing}
+      {html_content_evaluation}
     </body>
     </html>
     """)

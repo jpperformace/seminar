@@ -51,8 +51,8 @@ async def run_final_report_generation():
             phase=Phasen.UNDERSTANDING.value,
             groesse=st.session_state.company_size,
             ux_erfahrung=st.session_state.ux_experience,
-            pre_evaluation=st.session_state.organizing_report,
-            message_history=st.session_state.organizing_messages
+            pre_evaluation=st.session_state.understanding_report,
+            message_history=st.session_state.understanding_messages
     ) as response:
         final_text = await response.get_output()
         print(final_text)
@@ -70,30 +70,44 @@ with st.container():
         print("Final Report")
         final_report = asyncio.run(run_final_report_generation())
 
-        st.session_state.evaluation_report = final_report.antworttext
-        st.switch_page("pages/start.py")
+        st.session_state.understanding_final_report = final_report.antworttext
+        st.switch_page("pages/auditsimulation-designing.py")
+
+    float_parent(css="""
+        position: fixed;
+        top: 5rem;
+        right: 5rem;
+        width: 15rem;
+        height: 2.5rem;
+        z-index: 9999;
+        background: white;
+        border-radius: 0.75rem;
+    """)
+
+with st.container():
+    st.download_button(
+        label="⬇️ Download als HTML",
+        data=get_final_review_html(
+            st.session_state.get("organizing_final_report"),
+            st.session_state.get("understanding_final_report"),
+            st.session_state.get("designing_final_report"),
+            st.session_state.get("evaluation_final_report")
+        ),
+        file_name="audit_report_document.html",
+        mime="text/html"
+    )
 
     # WICHTIG: fixed + z-index + background, damit er wirklich "immer oben" bleibt
     float_parent(css="""
         position: fixed;
         top: 5rem;
-        right: 5%;
-        width: 20%;
+        right: 20.5rem;
+        width: 11.5rem;
         height: 2.5rem;
-        z-index: 9999;
+        z-index: 9998;
         background: white;
+        border-radius: 0.75rem;
     """)
-
-with st.container():
-    st.download_button(
-        label="Download als HTML",
-        data=get_final_review_html(st.session_state.get("evaluation_report")),
-        file_name="audit_report_document.html",
-        mime="text/html",
-        disabled = not st.session_state.get("organizing_evaluation_finished", False)
-    )
-    button_css = float_css_helper(width="37%", top="5rem", right="0%", transition=0)
-    float_parent(css=button_css)
 
 st.title("Nutzerzentriert Entwickelt")
 
@@ -197,6 +211,7 @@ async def run_simulation_agent_with_streaming(userinput, frage):
     add_response_messages_to_history(response.new_messages())
 
 async def run_retrieval_agent_with_streaming(user_input, use_history=True, add_message=True):
+    print("User input:", user_input)
     async with chat_agent.run_stream(
         user_input,
         deps=st.session_state.agent_deps,
@@ -217,6 +232,11 @@ def get_agent_input(userinput):
     )
 
 async def assign_response(userinput):
+    if st.session_state.understanding_question_index == 2:
+        print("Verbessere Zuordnung")
+        print(st.session_state.understanding_user_inputs)
+        return await assign_user_input_to_response_option(get_agent_input(userinput), st.session_state.understanding_user_inputs)
+
     return await assign_user_input_to_response_option(get_agent_input(userinput))
 
 async def run_context_agent_with_streaming(userinput, assign_agent_response):
@@ -246,7 +266,7 @@ async def run_context_agent_with_streaming(userinput, assign_agent_response):
 
     add_response_messages_to_history(response.new_messages())
 
-async def run_report_generation_with_streaming(ai_tools, methods):
+async def run_report_generation_with_streaming():
 
     a1 = next(a for a in understanding_response_q1 if a.text == st.session_state.understanding_assigned_responses[0])
     a2 = next(a for a in understanding_response_q2 if a.text == st.session_state.understanding_assigned_responses[1])
@@ -259,7 +279,7 @@ async def run_report_generation_with_streaming(ai_tools, methods):
         phase=Phasen.UNDERSTANDING.value,
         groesse=st.session_state.company_size,
         ux_erfahrung=st.session_state.ux_experience,
-        methoden=methods, ki_tools=ai_tools, evaluation_metrik=understanding_rating_metrik
+        methoden=st.session_state.methods, ki_tools=st.session_state.ai_tools, evaluation_metrik=understanding_rating_metrik
     ) as response:
         async for output in response.stream_output():
             yield output
@@ -271,6 +291,7 @@ async def run_post_agent_with_streaming(user_input, use_history=True, add_messag
 
     async with run_rag_agent_with_evaluation_logic(
         nutzereingabe=user_input,
+        phase=Phasen.UNDERSTANDING.value,
         groesse=st.session_state.company_size,
         ux_erfahrung=st.session_state.ux_experience,
         agent_deps=st.session_state.agent_deps,
@@ -351,28 +372,34 @@ async def main():
 
     if user_input:
         # Display user prompt in the UI
+        assign_agent_response = None
+
         with st.chat_message("user"):
             st.session_state.understanding_user_inputs.append(user_input)
             st.markdown(user_input)
             st.session_state.understanding_messages.extend(
                 [ModelRequest(parts=[UserPromptPart(content=user_input)])])
 
-        assign_agent_response = await assign_response(user_input)
+        if st.session_state.understanding_question_index < len(understanding_questions):
+            assign_agent_response = await assign_response(user_input)
+
 
         print("Fragen:")
         print(st.session_state.understanding_question_index)
         print(len(understanding_questions))
 
         print("Zugeordnete Antwort:")
-        print(assign_agent_response.output.zugeordnete_antwort)
+        if assign_agent_response:
+            print(assign_agent_response.output.zugeordnete_antwort)
 
-        if assign_agent_response.output.zugeordnete_antwort and st.session_state.understanding_question_index == len(understanding_questions) - 1:
+        if assign_agent_response and assign_agent_response.output.zugeordnete_antwort and st.session_state.understanding_question_index == len(understanding_questions) - 1:
             st.session_state.understanding_chat_state = ChatState.CREATE_REPORT
             st.session_state.understanding_assigned_responses.append(assign_agent_response.output.zugeordnete_antwort)
 
             with st.spinner("Die Bewertung wird jetzt ausgeführt das kann einige Zeit dauern."):
-                ai_tools = await  get_ai_tool()
-                methods = await get_methods()
+                st.session_state.ai_tools = await  get_ai_tool()
+                st.session_state.methods = await get_methods()
+                print("AI-Tools and Methods updated")
 
         # Display the assistant's partial response while streaming
 
@@ -390,14 +417,13 @@ async def main():
             elif st.session_state.understanding_chat_state == ChatState.GET_CONTEXT_INFO:
                 generator = run_context_agent_with_streaming(user_input, assign_agent_response)
             elif st.session_state.understanding_chat_state == ChatState.CREATE_REPORT:
-                generator = run_report_generation_with_streaming(ai_tools, methods)
+                generator = run_report_generation_with_streaming()
             elif st.session_state.understanding_chat_state == ChatState.FOLLOW_UP:
                 generator = run_post_agent_with_streaming(user_input)
             else:
                 raise ValueError('Invalid chat state')
 
             async for chunk in generator:
-                output_string = chunk
 
                 if st.session_state.understanding_chat_state == ChatState.FOLLOW_UP:
                     full += chunk
@@ -411,10 +437,11 @@ async def main():
 
             message_placeholder.markdown(full)
 
-            if st.session_state.organizing_chat_state == ChatState.CREATE_REPORT:
+            if st.session_state.understanding_chat_state == ChatState.CREATE_REPORT:
                 print(full)
-                st.session_state.organizing_report = full
-                st.session_state.organizing_chat_state = ChatState.FOLLOW_UP
+                st.session_state.understanding_report = full
+                st.session_state.understanding_chat_state = ChatState.FOLLOW_UP
+                st.session_state.understanding_question_index += 1
 
             if st.session_state.understanding_evaluation_finished and st.session_state.understanding_button_updated:
                 st.session_state.understanding_button_updated = False

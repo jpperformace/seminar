@@ -103,7 +103,8 @@ response_text_agent = Agent(
     os.getenv("MODEL_CHOICE", "gpt-4.1-mini"),
     output_type=ResponseTextOutput,
     system_prompt=(
-        "Versuche natürlich und verständlich zu antworten. Gehe immer auf die Fragen den Nutzeres ein. "
+        "Versuche natürlich und verständlich zu antworten. Gehe immer auf die Fragen den Nutzeres ein."
+        "Versuche flüssig und sinnvoll zu antworten ohne Inhalte komplett zu wiederholen."
         "Gib die Antwort in antworttext zurück"
     )
     )
@@ -123,7 +124,7 @@ def assign_user_input(eingabe: AssignResponseInput, nachrichtenverlauf):
 
     return response_agent.run_stream(user_prompt=prompt, message_history=nachrichtenverlauf)
 
-async def assign_user_input_to_response_option(eingabe: AssignUserResponseInput):
+async def assign_user_input_to_response_option(eingabe: AssignUserResponseInput, vorherige_nutzereingaben: Optional[List[str]] = None):
     prompt = (
         "Du bekommst eine Frage, eine Nutzereingabe und eine Liste von Antwortoptionen."
         "Gib immer genau eine Antwort zurück, die am besten passt."
@@ -135,6 +136,11 @@ async def assign_user_input_to_response_option(eingabe: AssignUserResponseInput)
         f"Nutzereingabe: {eingabe.nutzereingabe}\n"
         f"Antwortoptionen: {eingabe.antwortoptionen}\n"
     )
+
+    if vorherige_nutzereingaben:
+        prompt += "Beachte für die Zuordnung auch Informationen die der Nutzer in vorherrigen Nutzereingaben gegeben hat: "
+        prompt += "\n".join(vorherige_nutzereingaben) + "\n"
+
 
     response = await check_response_agent.run(user_prompt=prompt)
     return response
@@ -161,7 +167,7 @@ def help_user_to_response(eingabe: AssignUserResponseInput, nachrichtenverlauf):
 def ask_next_question(eingabe: NextResponseInput, nachrichtenverlauf):
     prompt = (
         "Du bekommst eine Frage, eine Nutzereingabe und eine Frage, die du als nächstes stellen sollst."
-        "Gib eine Nachricht zurück die auf die Nutzereingabe eingeht. "
+        "Gib eine Nachricht zurück die flüssig auf die Nutzereingabe eingeht ohne Inhalte zu wiederholen. "
         "Versuche flüssig und natürlich auf die nachste Frage überzuleiten und stelle die nächste Frage. "
         "Formuliere die Frage inhaltlich nicht um."
     )

@@ -209,24 +209,24 @@ def get_final_report(phase:str, groesse:str, ux_erfahrung:str, pre_evaluation:st
 
     prompt += (
         f"""
-            <h2>Bewertung der Phase {phase}</h3>
+            ## Bewertung der Phase {phase}
+
+            Strukturiere die Bewertung wie folgt:
             
-            <p>Strukturiere die Bewertung wie folgt:</p>
+            #### Bewertung:
+            Gib eine kurze, prägnante Gesamtbeurteilung.
             
-            <h4>Bewertung:</h4>
-            <p>Gib eine kurze, prägnante Gesamtbeurteilung.</p>
+            #### Begründung:
+            Formuliere eine ausführliche, kausale Begründung unter Bezug auf die Kriterien und die Antworten des Nutzers.
             
-            <h4>Begründung:</h4>
-            <p>Formuliere eine ausführliche, kausale Begründung unter Bezug auf die Kriterien und die Antworten des Nutzers.</p>
+            #### Verbesserungspotential:
+            Gib konkrete Vorschläge zur Weiterentwicklung, um eine bessere Bewertung zu erreichen.
             
-            <h4>Verbesserungspotential:</h6>
-            <p>Gib konkrete Vorschläge zur Weiterentwicklung, um eine bessere Bewertung zu erreichen.</p>
+            **UX-Methoden:**
+            Erläutere geeignete vorgeschlagene Methoden genauer und begründe, welche im Kontext am besten passen.
             
-            <p><strong>UX-Methoden:</strong></p>
-            <p>Erläutere geeignete vorgeschlagene Methoden genauer und begründe, welche im Kontext am besten passen.</p>
-            
-            <p><strong>KI-Tools:</strong></p>
-            <p>Erläutere geeignete vorgeschlagene KI-Tools genauer und begründe, welche im Kontext am sinnvollsten sind.</p>
+            **KI-Tools:**
+            Erläutere geeignete vorgeschlagene KI-Tools genauer und begründe, welche im Kontext am sinnvollsten sind.
         """
     )
     prompt += (
