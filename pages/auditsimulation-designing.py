@@ -43,7 +43,7 @@ st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
 st.sidebar.page_link('pages/auditsimulation-organizing.py', label='KI-Audit: Organisieren')
 st.sidebar.page_link('pages/auditsimulation-understanding.py', label='KI-Audit: Verstehen')
-st.sidebar.page_link('pages/auditsimulation-DESIGNING.py', label='KI-Audit: Gestalten')
+st.sidebar.page_link('pages/auditsimulation-designing.py', label='KI-Audit: Gestalten')
 
 float_init()
 
