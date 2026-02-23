@@ -44,7 +44,7 @@ st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
 st.sidebar.page_link('pages/auditsimulation-organizing.py', label='KI-Audit: Organisieren')
 st.sidebar.page_link('pages/auditsimulation-understanding.py', label='KI-Audit: Verstehen')
 st.sidebar.page_link('pages/auditsimulation-designing.py', label='KI-Audit: Gestalten')
-st.sidebar.page_link('pages/auditsimulation-evaluation.py', label='KI-Audit: Gestalten')
+st.sidebar.page_link('pages/auditsimulation-evaluation.py', label='KI-Audit: Bewerten')
 
 float_init()
 
@@ -74,10 +74,13 @@ with st.container():
             key="next_phase_btn",
     ):
         print("Final Report")
-        final_report = asyncio.run(run_final_report_generation())
+        if st.session_state.evaluation_new_user_input:
+            final_report = asyncio.run(run_final_report_generation())
+            st.session_state.evaluation_final_report = f"## Bewertung der Phase Bewerten \n" + final_report.antworttext
+            print(st.session_state.evaluation_final_report)
+            st.session_state.evaluation_new_user_input = False
 
-        st.session_state.evaluation_final_report = final_report.antworttext
-        st.switch_page("pages/auditsimulation-designing.py")
+        st.switch_page("pages/final_report.py")
 
     float_parent(css="""
         position: fixed;
@@ -342,6 +345,9 @@ async def main():
     if "evaluation_button_updated" not in st.session_state:
         st.session_state.evaluation_button_updated = True
 
+    if "evaluation_new_user_input" not in st.session_state:
+        st.session_state.evaluation_new_user_input = False
+
     if "evaluation_report" not in st.session_state:
         st.session_state.evaluation_report = ""
 
@@ -379,6 +385,7 @@ async def main():
 
     if user_input:
         assign_agent_response = None
+        st.session_state.evaluation_new_user_input = True
 
         # Display user prompt in the UI
         with st.chat_message("user"):

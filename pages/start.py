@@ -38,7 +38,7 @@ with col1:
 
 with col2:
     if st.button("🖥️ Simulation starten", use_container_width=True,  disabled=not st.session_state.get("agent_ready", False)):
-        st.switch_page("pages/simulation-organizing.py")
+        st.switch_page("pages/auditsimulation-organizing.py")
 
 st.markdown(
     """

@@ -73,10 +73,12 @@ with st.container():
             key="next_phase_btn",
     ):
         print("Final Report")
-        final_report = asyncio.run(run_final_report_generation())
+        if st.session_state.designing_new_user_input:
+            final_report = asyncio.run(run_final_report_generation())
+            st.session_state.designing_final_report = final_report.antworttext
+            st.session_state.designing_new_user_input = False
 
-        st.session_state.designing_final_report = final_report.antworttext
-        st.switch_page("pages/start.py")
+        st.switch_page("pages/auditsimulation-evaluation.py")
 
     float_parent(css="""
         position: fixed;
@@ -244,10 +246,6 @@ async def run_context_agent_with_streaming(userinput, assign_agent_response):
 
     next_question = 1
 
-    if assign_agent_response.output.zugeordnete_antwort == designing_response_q1[1].text:
-        next_question = 2
-        st.session_state.have_ux_expert = True
-
     if assign_agent_response.output.zugeordnete_antwort is None:
         async with help_user_to_response(help_input, st.session_state.designing_messages) as response:
             async for output in response.stream_output():
@@ -341,6 +339,9 @@ async def main():
     if "designing_button_updated" not in st.session_state:
         st.session_state.designing_button_updated = True
 
+    if "designing_new_user_input" not in st.session_state:
+        st.session_state.designing_new_user_input = False
+
     if "designing_report" not in st.session_state:
         st.session_state.designing_report = ""
 
@@ -378,6 +379,7 @@ async def main():
 
     if user_input:
         assign_agent_response = None
+        st.session_state.designing_new_user_input = True
 
         # Display user prompt in the UI
         with st.chat_message("user"):

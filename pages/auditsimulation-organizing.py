@@ -71,10 +71,12 @@ with st.container():
             key="next_phase_btn",
     ):
         print("Final Report")
-        final_report = asyncio.run(run_final_report_generation())
+        if st.session_state.organizing_new_user_input:
+            final_report = asyncio.run(run_final_report_generation())
+            st.session_state.organizing_final_report = f"## Bewertung der Phase Organisieren \n" + final_report.antworttext
+            st.session_state.organizing_new_user_input = False
 
-        st.session_state.organizing_final_report = final_report.antworttext
-        st.switch_page("pages/auditsimulation-evaluation.py")
+        st.switch_page("pages/auditsimulation-understanding.py")
 
     float_parent(css="""
         position: fixed;
@@ -359,6 +361,9 @@ async def main():
     if "organizing_button_updated" not in st.session_state:
         st.session_state.organizing_button_updated = True
 
+    if "organizing_new_user_input" not in st.session_state:
+        st.session_state.organizing_new_user_input = False
+
     if "organizing_report" not in st.session_state:
         st.session_state.organizing_report = ""
 
@@ -414,6 +419,7 @@ async def main():
     if user_input:
         # Display user prompt in the UI
         assign_agent_response = None
+        st.session_state.organizing_new_user_input = True
 
         with st.chat_message("user"):
             st.session_state.organizing_user_inputs.append(user_input)
