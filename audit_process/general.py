@@ -1,5 +1,11 @@
 from enum import Enum
 
+class ChatState(str, Enum):
+    WELCOME = "Welcome"
+    GET_CONTEXT_INFO = "Get Context Info"
+    CREATE_REPORT = "Create Report"
+    FOLLOW_UP = "Follow-Up"
+
 class Phasen(Enum):
     ORGANIZING = 'Organisieren'
     UNDERSTANDING = 'Verstehen'

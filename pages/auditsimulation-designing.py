@@ -1,41 +1,26 @@
-import json
-import re
-from enum import Enum, auto
-
-from docutils.nodes import Part
 from dotenv import load_dotenv
 import streamlit as st
 import asyncio
 
 from pydantic_ai import TextPart
-# Import all the message part classes
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse, ToolCallPart, UserPromptPart
 )
-from streamlit_float import float_parent, float_init, float_css_helper
+from streamlit_float import float_parent, float_init
 
-from agents.agent_loader import get_agent
-from agents.context_agent import assign_user_input, AssignResponseInput, assign_user_input_to_response_option, \
+from agents.context_agent import assign_user_input_to_response_option, \
     ask_next_question, AssignUserResponseInput, NextResponseInput, help_user_to_response
 from agents.rating_agent import BewertungEingabe, evaluate_phase_and_get_response, get_final_report
 from agents.retrieval_agent import chat_agent, run_rag_agent_with_evaluation_logic
-from agents.welcome_agent import get_welcome_message, start_simulation
+from agents.welcome_agent import get_welcome_message
 from audit_process.general import Phasen, get_no_expert_condition, get_method_search_string, get_method_user_input, \
-    get_ai_tool_condition, get_ai_tool_search_query, get_ai_tool_user_input
+    get_ai_tool_condition, get_ai_tool_search_query, get_ai_tool_user_input, ChatState
 from audit_process.designing import designing_questions, designing_response_text_options, designing_response_q1, \
     designing_response_q2, designing_response_q3, designing_rating_metrik, \
     designing_examples, designing_rating_metrik_with_help
+from ui.css import get_title_css
 from ui.html import get_final_review_html
-from utils import extract_assistant_response_text_from_output
-
-
-class ChatState(str, Enum):
-    WELCOME = "Welcome"
-    START_SIMULATION = "Start Simulation"
-    GET_CONTEXT_INFO = "Get Context Info"
-    CREATE_REPORT = "Create Report"
-    FOLLOW_UP = "Follow-Up"
 
 load_dotenv()
 
@@ -58,7 +43,6 @@ async def run_final_report_generation():
             message_history=st.session_state.designing_messages
     ) as response:
         final_text = await response.get_output()
-        print(final_text)
         return final_text
 
 
@@ -72,7 +56,6 @@ with st.container():
             type="primary",
             key="next_phase_btn",
     ):
-        print("Final Report")
         if st.session_state.designing_new_user_input:
             final_report = asyncio.run(run_final_report_generation())
             st.session_state.designing_final_report = final_report.antworttext
@@ -104,7 +87,6 @@ with st.container():
         mime="text/html"
     )
 
-    # WICHTIG: fixed + z-index + background, damit er wirklich "immer oben" bleibt
     float_parent(css="""
         position: fixed;
         top: 5rem;
@@ -116,7 +98,16 @@ with st.container():
         border-radius: 0.75rem;
     """)
 
-st.title("Nutzerzentriert Entwickelt")
+
+st.markdown(get_title_css(), unsafe_allow_html=True)
+
+st.markdown(f"""
+<div class="report-container">
+    <h1>KI-Assisstent: Phase 
+        "<span class='highlight-marker'>{Phasen.DESIGNING.value}</span>"
+    </h1>
+
+""", unsafe_allow_html=True)
 
 def display_message_part(part):
     """
@@ -162,16 +153,6 @@ def add_text_response_messages_to_history(messages):
                     st.session_state.designing_messages.append(msg)
 
 
-def store_output_information(output_string):
-    try:
-        output_data = json.loads(output_string)
-    except json.JSONDecodeError as e:
-        st.error(f"Fehler beim Parsen des Agenten-Outputs: {e}")
-        return
-
-    if st.session_state.designing_chat_state in [ChatState.WELCOME, ChatState.START_SIMULATION]:
-        st.session_state.simulation_started = output_data['simulation_gestartet']
-
 async def get_methods():
     if not st.session_state.have_ux_expert:
         st.session_state.agent_deps.condition = get_no_expert_condition()
@@ -207,15 +188,6 @@ async def run_welcome_agent_with_streaming():
 
     add_response_messages_to_history(response.new_messages())
 
-
-
-async def run_simulation_agent_with_streaming(userinput, frage):
-    async with start_simulation(userinput, frage, st.session_state.designing_messages) as response:
-
-        async for output in response.stream_output():
-            yield output
-
-    add_response_messages_to_history(response.new_messages())
 
 async def run_retrieval_agent_with_streaming(user_input, use_history=True, add_message=True):
     async with chat_agent.run_stream(
@@ -391,14 +363,6 @@ async def main():
         if st.session_state.designing_question_index < len(designing_questions):
             assign_agent_response = await assign_response(user_input)
 
-        print("Fragen:")
-        print(st.session_state.designing_question_index)
-        print(len(designing_questions))
-
-        print("Zugeordnete Antwort:")
-        if assign_agent_response:
-            print(assign_agent_response.output.zugeordnete_antwort)
-
         if assign_agent_response and assign_agent_response.output.zugeordnete_antwort and st.session_state.designing_question_index == len(designing_questions) - 1:
             st.session_state.designing_chat_state = ChatState.CREATE_REPORT
             st.session_state.designing_assigned_responses.append(assign_agent_response.output.zugeordnete_antwort)
@@ -406,7 +370,6 @@ async def main():
             with st.spinner("Die Bewertung wird jetzt ausgeführt das kann einige Zeit dauern."):
                 st.session_state.ai_tools = await  get_ai_tool()
                 st.session_state.methods = await get_methods()
-                print("AI-Tools and Methods updated")
 
         # Display the assistant's partial response while streaming
 
@@ -418,10 +381,7 @@ async def main():
             stream_antworttext = True
 
             # Properly consume the async generator with async for
-            print(st.session_state.designing_chat_state)
-            if st.session_state.designing_chat_state == ChatState.START_SIMULATION:
-                generator = run_simulation_agent_with_streaming(user_input, designing_questions[0])
-            elif st.session_state.designing_chat_state == ChatState.GET_CONTEXT_INFO:
+            if st.session_state.designing_chat_state == ChatState.GET_CONTEXT_INFO:
                 generator = run_context_agent_with_streaming(user_input, assign_agent_response)
             elif st.session_state.designing_chat_state == ChatState.CREATE_REPORT:
                 generator = run_report_generation_with_streaming()
@@ -444,7 +404,6 @@ async def main():
 
             message_placeholder.markdown(full)
             if st.session_state.designing_chat_state == ChatState.CREATE_REPORT:
-                print(full)
                 st.session_state.designing_report = full
                 st.session_state.designing_chat_state = ChatState.FOLLOW_UP
                 st.session_state.designing_question_index += 1

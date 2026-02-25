@@ -61,7 +61,8 @@ rating_agent = Agent(
         "Füge eine Überschrift hinzu. Stukturiere den Text mit Zeilenumbrüchen übersichtlich. "
         "Versuche alle Teile im Bewertungstext kurz und verständlich zu benennen"
         "Der Text soll nicht länger als 10 Sätze sein"
-        "Markiere alle Kernwörter wie die genaue Bewertung, einzelne Kirterienen, Verbesserungsvorschläge und konkrete Methoden udn KI-Tools Fett"
+        "Wichtig: "
+        "Markiere alle Kernwörter wie die genaue Bewertung, einzelne Kriterien bei der Beurteilung, Verbesserungsvorschläge und konkrete Methodenvorschläge und einzelnen KI-Tools Fett"
     )
 )
 
@@ -70,12 +71,13 @@ final_rating_agent = Agent(
     output_type=ResponseTextOutput,
     system_prompt=(
         "Du bist ein hilfreicher Assistent zur Reifegradbewertung in Audits zur nutzerzentrierten Entwicklung. "
+        "Beziehe die sachlich und neutral auf die Teile zu Bewertung, Begründung und Verbesserungsvorschläge inklusive Methoden und KI-Tools."
+        "Gib keine sonstige Hinweise, wie 'falls du Fragen hast stehe ich dir jederzeit zur Verfügung'"
         "Erstelle einen finalen Reprot in HTML-Code der folgendes enthält: eine subjektive Gesamteinschätzung, eine transparente kausale Begründung, "
         "übergeordnete Verbesserungspotenziale sowie Empfehlungen zu Methoden und KI-Tools inklusive kurzer Erläuterung "
         "der jeweils geeignetsten Option und kontrastiver Begründung für weniger passende Alternativen. "
         "Du nennst keine Scores, sondern argumentierst qualitativ anhand der Bewertungsmetrik."
-        "Strukturiere klar mit Zeilenumbrüchen."
-
+        "Strukturiere klar mit Zeilenumbrüchen. Markiere alle Kernwörter wie die genaue Bewertung, einzelne Kriterien bei der Beurteilung, Verbesserungsvorschläge und konkrete Methodenvorschläge und einzelnen KI-Tools Fett"
     )
 )
 
@@ -107,6 +109,7 @@ def evaluate_phase_and_get_response(nutzereingabe:list[str], antworten: Bewertun
         "die kompakt, erklärend und selektiv formuliert ist. Die Bewertung soll auf den Einzelbewertungen beruhen "
         "und klar aufzeigen, an welchen Stellen noch Schwächen bestehen. "
         "Fasse alle Informationen in einer zusammenhängenden Einschätzung zusammen, ohne die einzelnen Antworten explizit aufzuführen.\n"
+        "Markiere alle Kernwörter wie die genaue Bewertung, einzelne Kriterien bei der Beurteilung, Verbesserungsvorschläge und konkrete Methodenvorschläge und einzelnen KI-Tools Fett"
         f"Berücksichtige die Unternehmensgröße **{groesse}** ausdrücklich: "
         "Kleinere Unternehmen sind grundsätzlich weicher zu bewerten, da nicht alle Maßnahmen, Rollen oder formalen Prozesse realistisch umsetzbar sind. "
         "Bewerte daher vor allem, ob nutzerzentrierte Prinzipien unter den gegebenen Ressourcen praktikabel angewendet werden und vermeide idealtypische Maßstäbe."
@@ -133,6 +136,7 @@ def get_final_report(phase:str, groesse:str, ux_erfahrung:str, pre_evaluation:st
         "Berücksichtige dabei alle Rückmeldungen des Nutzers zur vorläufigen Bewertung: "
         "Korrigiere Fehlinterpretationen, integriere Verbesserungshinweise und vertiefe Inhalte, "
         "die der Nutzer explizit nachgefragt hat (z. B. konkrete Methoden oder KI-Tools). "
+        "Verwende nur Inhalte um Bewertung, Begründung und Verbesserungsvorschläge inklusive Methoden und KI-Tools aus dem vorläufigen Report"
         "Füge auf keinen Fall Informationen des letzen Abschnittes aus der vorläufigen Bewertung ein."
         f"Die vorläufige Bewertung lautet: {pre_evaluation}"
     )
@@ -151,14 +155,19 @@ def get_final_report(phase:str, groesse:str, ux_erfahrung:str, pre_evaluation:st
 
     prompt += (
         f"""
+                Markiere alle Kernwörter wie die genaue Bewertung, einzelne Kriterien bei der Beurteilung, Verbesserungsvorschläge und konkrete Methodenvorschläge und einzelnen KI-Tools Fett
                 Verwende exakt folgende Überschiften. Füge keine weitere Überschift hinzu. Strukturiere die Bewertung wie folgt:
 
                 ### Bewertung:
                 Gib eine kurze, prägnante Gesamtbeurteilung.
+                
+                
 
                 ### Begründung:
                 Formuliere eine ausführliche, kausale Begründung unter Bezug auf die Kriterien und die Antworten des Nutzers.
 
+                ---
+                
                 ### Verbesserungspotential:
                 Gib konkrete Vorschläge zur Weiterentwicklung, um eine bessere Bewertung zu erreichen.
 

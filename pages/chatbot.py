@@ -10,6 +10,7 @@ from pydantic_ai.messages import (
 
 from agents.agent_loader import get_agent
 from agents.retrieval_agent import chat_agent
+from ui.css import get_title_css
 
 load_dotenv()
 
@@ -44,7 +45,15 @@ async def run_agent_with_streaming(user_input):
     # Add the new messages to the chat history (including tool calls and responses)
     st.session_state.messages.extend(result.new_messages())
 
+st.markdown(get_title_css(), unsafe_allow_html=True)
 
+st.markdown(f"""
+<div class="report-container">
+    <h1>Chatbot:
+        <span class='highlight-marker'>UIG Siegel, UX-Methoden und KI-Tools</span>
+    </h1>
+
+""", unsafe_allow_html=True)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,7 +63,6 @@ async def run_agent_with_streaming(user_input):
 
 
 async def main():
-    st.title("Nutzerzentriert Entwickelt")
 
     # Initialize chat history in session state if not present
     if "messages" not in st.session_state:

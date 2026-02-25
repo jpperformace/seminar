@@ -9,7 +9,7 @@ evaluation_summary = """Die Phase Bewerten beschreibt die systematische Überpr�
                         durchlaufen werden müssen."""
 
 evaluation_questions = [
-    'Wie werden Anwendende in den Entwicklungsprozess eingebunden, um erste Entwürfe der Benutzerschnittstelle zu bewerten?',
+    'Wie werden Nutzer:innen in den Entwicklungsprozess eingebunden, um erste Entwürfe der Benutzerschnittstelle zu bewerten?',
     'Nach welchen Kriterien erfolgt die Auswahl und Vorselektion der Testteilnehmenden für Evaluationsmaßnahmen?',
     'Welche Methoden setzen Sie insgesamt zur Bewertung der Usability und User Experience (UUX) ein?'
 ]

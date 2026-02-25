@@ -2,6 +2,7 @@ import textwrap
 
 import markdown
 
+from audit_process.general import Phasen
 from ui.css import get_review_container_css
 
 def get_sidebar_html():
@@ -84,6 +85,7 @@ def get_final_review_html(organizing, understanding, designing, evaluation):
 
     return textwrap.dedent(f"""
     <html>
+        <html>
     <head>
       <style>
         body {{
@@ -91,18 +93,105 @@ def get_final_review_html(organizing, understanding, designing, evaluation):
           font-size: 0.85rem;
           color: #333;
           padding: 2rem;
+          background-color: #fafafa;
         }}
+
+        /* ---------- H1 Styling ---------- */
+
+        h1 {{
+          font-size: 2.2rem;
+          font-weight: 700;
+          line-height: 1.2;
+          margin-bottom: 3rem;
+          color: #111;
+        }}
+
+        .highlight-marker {{
+          position: relative;
+          display: inline-block;
+          z-index: 0;
+        }}
+
+        .highlight-marker::after {{
+          content: "";
+          position: absolute;
+          left: -6px;
+          right: -6px;
+          bottom: 6px;
+          height: 16px;
+          background: linear-gradient(
+            100deg,
+            rgba(244,197,66,0.9) 0%,
+            rgba(255,221,87,0.85) 100%
+          );
+          z-index: -1;
+          transform: rotate(-1.2deg);
+          border-radius: 6px;
+        }}
+
+        /* ---------- Phase Sections ---------- */
+
+        .phase-section {{
+          background: #ffffff;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+          border-left: 6px solid #f4c542;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }}
+
+        h2 {{
+          font-size: 1.2rem;
+          margin-top: 0;
+          margin-bottom: 1.2rem;
+          color: #111;
+          position: relative;
+          padding-bottom: 0.5rem;
+        }}
+
+        h2::after {{
+          content: "";
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          width: 60px;
+          height: 4px;
+          background-color: #f4c542;
+          border-radius: 2px;
+        }}
+
       </style>
     </head>
     <body>
-      <h1> KI Report </h1>
-      {html_content_organizing}
-      {html_content_understanding}
-      {html_content_designing}
-      {html_content_evaluation}
+
+      <h1>
+        KI-Report für das Siegel 
+        "<span class="highlight-marker">Nutzerzentriert Entwickelt</span>"
+      </h1>
+
+      <div class="phase-section">
+        <h2>Phase: {Phasen.ORGANIZING.value}</h2>
+        {html_content_organizing}
+      </div>
+
+      <div class="phase-section">
+        <h2>Phase: {Phasen.UNDERSTANDING.value}</h2>
+        {html_content_understanding}
+      </div>
+
+      <div class="phase-section">
+        <h2>Phase: {Phasen.DESIGNING.value}</h2>
+        {html_content_designing}
+      </div>
+
+      <div class="phase-section">
+        <h2>Phase: {Phasen.EVALUATION.value}</h2>
+        {html_content_evaluation}
+      </div>
+
     </body>
     </html>
-    """)
+""")
 
 def get_default_hint_text():
     return textwrap.dedent("""

@@ -45,14 +45,3 @@ def get_welcome_message(phase:str, frage:str):
               f"Beginne am Ende die Simulation, indem du ganz am Ende der Einleitung flüssig die erste Frage stellt: {frage}")
 
     return welcome_agent.run_stream(user_prompt=prompt)
-
-def start_simulation(nutzereingabe:str, frage:str, nachrichtenverlauf):
-
-    prompt = (
-        f"Der Nutzer schrieb: '{nutzereingabe}'.\n"
-        f"Falls dies ein Startsignal für die Simulation ist, antworte mit der ersten Frage {frage}. Antworte hierbei flüssig "
-        f"und mit kurzem Übergang. Gib deine Nachricht in 'antworttext' zurück und setzte 'simulation_gestartet' True. \n"
-        f"Falls nicht, sage nur, dass die Simulation noch nicht gestartet wurde und frage nochmal ob sie gestartet werden soll. "
-        f"Gib deine Nachricht in 'antworttext' zurück und setzte 'simulation_gestartet' False. ")
-
-    return welcome_agent.run_stream(user_prompt=prompt, message_history=nachrichtenverlauf)
