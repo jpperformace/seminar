@@ -82,7 +82,7 @@ async def main():
                 display_message_part(part)
 
     # Chat input for the user
-    user_input = st.chat_input("What do you want to know?")
+    user_input = st.chat_input("Was möchtest du wissen?")
 
     if user_input:
         # Display user prompt in the UI
