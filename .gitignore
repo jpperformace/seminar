@@ -1,6 +1,5 @@
 test_documents/
 markdown_files/
-chroma_db
 .env
 .venv
 .idea/
