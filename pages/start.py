@@ -33,7 +33,7 @@ st.markdown("### Starten Sie jetzt")
 st.write("Testen Sie den KI-gestützten Audit-Assistenten für mehr Klarheit, Sicherheit und Struktur auf dem Weg zur Zertifizierung.")
 
 # Button-Layout
-col1, col2, spacer_right = st.columns([1, 1, 2], gap="small")
+col1, col2, spacer_right = st.columns([1, 1, 1], gap="small")
 
 is_ready = st.session_state.get("agent_ready", False)
 
