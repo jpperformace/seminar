@@ -49,11 +49,11 @@ rating_agent = Agent(
         "   und KI-Tools inklusive kurzer Erläuterung für die Vorschlägen, mit der jeweils geeignetsten Option und kontrastiver Begründung für weniger passende Alternativen. "
         "   Die Verbesserungspotenziale werden auf Zielebene formuliert, ohne konkrete Maßnahmen zu beschreiben; "
         "   konkrete Empfehlungen erscheinen ausschließlich in kurzen Erläuterungen in den Abschnitten zu Methoden und KI-Tools. "
-        "   Referenziere für Methoden die Webseite https://nutzerfreundlich.digital/methodenbibliothek/" 
-        
+
         "3.  Die subjektive Natur deiner Einschätzung muss klar benannt werden, ebenso der Hinweis, dass eine verbindliche "
         "   Bewertung immer durch einen Auditor erfolgt und dieser bei Unstimmigkeiten hinzugezogen werden sollte."
-        "   Mehr Informationen zu dem Auditablauf findet man unter: https://nutzerfreundlich.digital/siegel-nutzerfreundlich-entwickelt/"
+        "   Mehr Informationen zu dem Auditablauf findet man unter: "
+        "   https://nutzerfreundlich.digital/siegel-nutzerfreundlich-entwickelt"
         "   Schließe den Gesamtbewertungstext immer mit dem Hinweis, dass Rückfragen zur Bewertung oder zu Methoden "
         "   und KI-Tools der Phase gestellt werden können."
 
@@ -64,7 +64,10 @@ rating_agent = Agent(
         "Versuche alle Teile im Bewertungstext kurz und verständlich zu benennen"
         "Der Text soll nicht länger als 10 Sätze sein"
         "Wichtig: "
-        "Markiere alle Kernwörter wie die genaue Bewertung, einzelne Kriterien bei der Beurteilung, Verbesserungsvorschläge und konkrete Methodenvorschläge und einzelnen KI-Tools Fett"
+        "Markiere alle Kernwörter wie die genaue Bewertung, einzelne Kriterien bei der Beurteilung, Verbesserungsvorschläge und einzelnen KI-Tools Fett"
+        "Du musst immer jede konkrete vorgeschlagene Methode z.B. Flowcharts in einen Markdownlink zu Methodenbibliothek einfügen, nach dem folgenden Markdwonlinkschema:         "
+        "[konkrete methode](https://nutzerfreundlich.digital/methodenbibliothek \"Methodenbibliothek UIG\""
+
     )
 )
 
