@@ -2,6 +2,8 @@ import streamlit as st
 
 from ui.css import get_title_css
 
+st.set_page_config(layout="wide")
+
 st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
 st.sidebar.page_link('pages/auditsimulation-organizing.py', label='KI-Audit')
@@ -42,7 +44,7 @@ st.markdown("""
     /* Die Container-Klasse für Streamlit Buttons ansprechen */
     div.stButton > button {
         width: 100%;          /* Volle Breite der Spalte */
-        height: 80px;         /* Deutlich höher für den großen Inhalt */
+        height: 60px;         /* Deutlich höher für den großen Inhalt */
         border-radius: 20px;   /* Schön abgerundete Ecken */
 
         /* Flexbox sorgt dafür, dass Icon und Text sauber zentriert sind */
@@ -81,7 +83,7 @@ st.markdown(
     """
     <style>
     div.stButton > button > div {
-        font-size: 30px !important;
+        font-size: 25px !important;
         font-family: "Arial" !important;
     }
     </style>

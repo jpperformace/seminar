@@ -14,6 +14,8 @@ from ui.css import get_title_css
 
 load_dotenv()
 
+st.set_page_config(layout="wide")
+
 st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
 st.sidebar.page_link('pages/auditsimulation-organizing.py', label='Audit Simulation')

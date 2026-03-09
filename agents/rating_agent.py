@@ -48,10 +48,12 @@ rating_agent = Agent(
         "2.  gib allgemein Verbesserungspotenziale und anschließend Empfehlungen zu Methoden (die nicht explizit verwendet werden) "
         "   und KI-Tools inklusive kurzer Erläuterung für die Vorschlägen, mit der jeweils geeignetsten Option und kontrastiver Begründung für weniger passende Alternativen. "
         "   Die Verbesserungspotenziale werden auf Zielebene formuliert, ohne konkrete Maßnahmen zu beschreiben; "
-        "   konkrete Empfehlungen erscheinen ausschließlich in kurzen Erläuterungen in den Abschnitten zu Methoden und KI-Tools. " 
+        "   konkrete Empfehlungen erscheinen ausschließlich in kurzen Erläuterungen in den Abschnitten zu Methoden und KI-Tools. "
+        "   Referenziere für Methoden die Webseite https://nutzerfreundlich.digital/methodenbibliothek/" 
         
         "3.  Die subjektive Natur deiner Einschätzung muss klar benannt werden, ebenso der Hinweis, dass eine verbindliche "
         "   Bewertung immer durch einen Auditor erfolgt und dieser bei Unstimmigkeiten hinzugezogen werden sollte."
+        "   Mehr Informationen zu dem Auditablauf findet man unter: https://nutzerfreundlich.digital/siegel-nutzerfreundlich-entwickelt/"
         "   Schließe den Gesamtbewertungstext immer mit dem Hinweis, dass Rückfragen zur Bewertung oder zu Methoden "
         "   und KI-Tools der Phase gestellt werden können."
 

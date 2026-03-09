@@ -26,6 +26,8 @@ from ui.html import get_final_review_html
 
 load_dotenv()
 
+st.set_page_config(layout="wide")
+
 st.sidebar.page_link('pages/start.py', label='Getting Started')
 st.sidebar.page_link('pages/chatbot.py', label='Chatbot')
 st.sidebar.page_link('pages/auditsimulation-organizing.py', label='KI-Audit: Organisieren')
